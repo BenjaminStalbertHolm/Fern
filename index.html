@@ -1,0 +1,2560 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Records Room — Case 68/11/0417</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Courier+Prime:ital,wght@0,400;0,700;1,400&family=Special+Elite&family=Caveat:wght@500;700&display=swap" rel="stylesheet">
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+<style>
+:root{
+  --ink:#27231d; --paper:#cfc8b1; --paper-deep:#bdb59b;
+  --dim:#8d8677; --text:#b9b2a0; --amber:#e0a25a; --red:#8c2c26; --handwrite:#2d3a4c;
+  --bg:#08090a; --cork:#6b5a43;
+}
+@media (prefers-color-scheme: light){
+  :root:not([data-theme="light"]){ --bg:#08090a; }
+}
+:root[data-theme="dark"]{ --bg:#08090a; }
+*{ box-sizing:border-box; }
+html,body{ margin:0; height:100%; background:var(--bg); overflow:hidden; }
+body{ font-family:'Courier Prime','Courier New',monospace; color:var(--text); user-select:none; -webkit-font-smoothing:antialiased; }
+#stage{ position:fixed; inset:0; width:100%; height:100%; display:block; }
+.typed{ font-family:'Courier Prime','Courier New',monospace; letter-spacing:.04em; }
+.hidden{ display:none !important; }
+.overlay{ position:fixed; inset:0; display:flex; align-items:center; justify-content:center; flex-direction:column; transition:opacity 1.4s ease; }
+.overlay.off{ opacity:0; pointer-events:none; }
+
+#intro{ background:#050506; z-index:30; }
+#introText{ width:min(640px,88vw); font-size:16px; line-height:1.75; color:#a79f8a; white-space:pre-wrap; min-height:14em; }
+#introText .cur, #endText .cur{ display:inline-block; width:.55em; height:1em; background:#a79f8a; vertical-align:-.15em; opacity:.8; animation:blink 1.1s steps(1) infinite; }
+@keyframes blink{ 50%{ opacity:0; } }
+
+.btn{ margin-top:28px; background:none; border:0; border-bottom:1px solid #6c6657; color:#b9b2a0; font:inherit; font-size:15px; letter-spacing:.08em; padding:6px 2px; cursor:pointer; font-family:'Special Elite','Courier Prime',monospace; }
+.btn:hover{ color:#e6dfcc; border-color:var(--amber); }
+
+#note{ position:fixed; top:22px; left:50%; transform:translateX(-50%); font-family:'Special Elite','Courier Prime',monospace; font-size:14px; color:#bfb49a; opacity:0; transition:opacity .8s ease; pointer-events:none; text-align:center; max-width:80vw; text-shadow:0 0 12px rgba(0,0,0,.9); }
+#note.on{ opacity:.9; }
+
+#hud{ position:fixed; bottom:16px; left:0; right:0; text-align:center; font-size:12.5px; color:var(--dim); letter-spacing:.07em; pointer-events:none; transition:opacity .9s; }
+#hud .sep{ margin:0 .8em; opacity:.5; }
+#hudInk{ position:fixed; right:18px; bottom:16px; font-size:12px; color:var(--dim); pointer-events:none; }
+#cursorLabel{ position:fixed; left:0; top:0; font-size:12px; color:#a9a391; pointer-events:none; opacity:0; transition:opacity .4s; white-space:nowrap; text-shadow:0 0 8px #000; }
+#cursorLabel.on{ opacity:.9; }
+
+/* corkboard */
+#board{ z-index:12; background:radial-gradient(ellipse at 40% 30%, #7a6850 0%, #5b4b37 60%, #3b3125 100%); transition:opacity 1.2s ease; overflow:hidden; }
+#board::before{ content:''; position:absolute; inset:0; background:radial-gradient(circle, rgba(0,0,0,.18) 0 1px, transparent 1.5px) 0 0/7px 7px; mix-blend-mode:multiply; pointer-events:none; }
+#board::after{ content:''; position:absolute; inset:0; background:radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,.6) 100%); pointer-events:none; }
+#threads{ position:absolute; inset:0; width:100%; height:100%; pointer-events:none; z-index:1; }
+#cards{ position:absolute; inset:0; z-index:2; }
+#boardHint{ position:absolute; bottom:18px; left:0; right:0; text-align:center; font-size:12.5px; color:#d6cba9; opacity:.75; letter-spacing:.06em; z-index:3; }
+#boardTitle{ position:absolute; top:18px; left:24px; font-family:'Special Elite',monospace; color:#e8dcc0; opacity:.85; font-size:15px; z-index:3; }
+.card{ position:absolute; width:236px; background:var(--paper); color:var(--ink); padding:16px 16px 14px; box-shadow:0 10px 18px rgba(0,0,0,.5), inset 0 0 36px rgba(90,70,40,.14); font-size:12.5px; line-height:1.45; cursor:pointer; transition:box-shadow .5s ease, transform 1.2s ease; }
+.card:hover{ transform:translateY(-2px); }
+.card.sel{ box-shadow:0 0 0 2px var(--amber), 0 10px 18px rgba(0,0,0,.5); }
+.card.fact{ background:#d8d0b8; }
+.card .pin{ position:absolute; top:-7px; left:50%; margin-left:-6px; width:12px; height:12px; border-radius:50%; background:radial-gradient(circle at 35% 35%, #b5544b, #5c1f1a); box-shadow:0 2px 3px rgba(0,0,0,.55); }
+.card h4{ margin:0 0 7px; font-size:11.5px; letter-spacing:.09em; text-transform:uppercase; font-weight:700; }
+.card .val{ font-size:14px; font-weight:700; margin-bottom:4px; }
+.card .line{ white-space:normal; }
+.card .bar{ display:inline-block; background:#16140f; height:.8em; vertical-align:-.05em; }
+.card .hand{ font-family:'Caveat',cursive; font-size:19px; color:var(--handwrite); line-height:1.05; margin-top:8px; }
+.card .stamp{ position:absolute; right:10px; bottom:10px; font-family:'Special Elite',monospace; color:var(--red); border:1.5px solid var(--red); padding:1px 6px; transform:rotate(-8deg); font-size:12px; opacity:.85; }
+
+/* ending */
+#ending{ z-index:25; background:rgba(5,5,6,.94); }
+#endPaper{ width:min(660px,90vw); background:var(--paper); color:var(--ink); padding:44px 52px 40px; box-shadow:0 18px 40px rgba(0,0,0,.6), inset 0 0 60px rgba(90,70,40,.14); }
+#endText{ font-size:15px; line-height:1.7; white-space:pre-wrap; min-height:12em; }
+#endText .cur{ background:var(--ink); }
+#endText .hand{ font-family:'Caveat',cursive; font-size:24px; color:var(--handwrite); line-height:1.1; display:block; margin-top:14px; }
+#endText .lbl{ font-weight:700; letter-spacing:.06em; }
+</style>
+</head>
+<body>
+<canvas id="stage"></canvas>
+<div id="cursorLabel" class="typed"></div>
+<div id="note" class="typed"></div>
+<div id="hud" class="typed"><span id="hudHint"></span></div>
+<div id="hudInk" class="typed hidden"></div>
+
+<div id="board" class="overlay off hidden">
+  <div id="boardTitle">CORKBOARD · Case 68/11/0417 · MARROW, Anne Lisle</div>
+  <svg id="threads" xmlns="http://www.w3.org/2000/svg"></svg>
+  <div id="cards"></div>
+  <div id="boardHint" class="typed"></div>
+</div>
+
+<div id="intro" class="overlay">
+  <div id="introText" class="typed"></div>
+  <button id="beginBtn" class="btn typed hidden">open the file</button>
+</div>
+
+<div id="ending" class="overlay off hidden">
+  <div id="endPaper"><div id="endText" class="typed"></div></div>
+  <button id="againBtn" class="btn typed hidden">return the file to the drawer</button>
+</div>
+
+<script type="module">
+import * as THREE from 'three';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
+import { BokehPass } from 'three/addons/postprocessing/BokehPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+
+/* ------------------------------------------------------------------ *
+ *  Utilities
+ * ------------------------------------------------------------------ */
+const TAU = Math.PI * 2;
+const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+const lerp = (a, b, t) => a + (b - a) * t;
+const rr = (a, b) => a + (b - a) * Math.random();
+const easeInOut = t => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
+const easeOut = t => 1 - Math.pow(1 - t, 3);
+const easeIn = t => t * t * t;
+const smooth = t => t * t * (3 - 2 * t);
+
+// Stable pseudo-random from a string + salt (used so paper grain does not flicker on redraw)
+function hash01(str, salt = 0) {
+  let h = 2166136261 ^ salt;
+  for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); }
+  return ((h >>> 0) % 10000) / 10000;
+}
+
+/* A tiny tween system. Tweens may carry a tag so a new camera move can
+   cancel the one in flight. delay is in seconds and counts up from negative. */
+const tweens = [];
+function tween({ dur = 1, delay = 0, ease = easeInOut, tag = null, onUpdate, onDone }) {
+  const tw = { t: -delay, dur, ease, tag, onUpdate, onDone };
+  tweens.push(tw);
+  return tw;
+}
+function killTweens(tag) {
+  for (let i = tweens.length - 1; i >= 0; i--) if (tweens[i].tag === tag) tweens.splice(i, 1);
+}
+function updateTweens(dt) {
+  for (let i = tweens.length - 1; i >= 0; i--) {
+    const tw = tweens[i];
+    tw.t += dt;
+    if (tw.t < 0) continue;
+    const k = Math.min(1, tw.t / tw.dur);
+    if (tw.onUpdate) tw.onUpdate(tw.ease(k), k);
+    if (k >= 1) {
+      tweens.splice(i, 1);
+      if (tw.onDone) tw.onDone();
+    }
+  }
+}
+const wait = (sec, fn) => tween({ dur: 0.0001, delay: sec, onDone: fn });
+
+/* ------------------------------------------------------------------ *
+ *  Audio — everything is synthesised; nothing is sampled.
+ *  The context is created on the first click so browsers allow it.
+ * ------------------------------------------------------------------ */
+const AUD = { ctx: null, master: null, noise: null, on: false, drone: null, rain: null };
+
+function audioInit() {
+  if (AUD.ctx) return;
+  const AC = window.AudioContext || window.webkitAudioContext;
+  if (!AC) return;
+  const c = new AC();
+  AUD.ctx = c;
+  AUD.master = c.createGain();
+  AUD.master.gain.value = 0.85;
+  AUD.master.connect(c.destination);
+  const len = c.sampleRate * 2;
+  const buf = c.createBuffer(1, len, c.sampleRate);
+  const d = buf.getChannelData(0);
+  for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+  AUD.noise = buf;
+  AUD.on = true;
+  startAmbience();
+}
+
+function playNoise(dur, { type = 'bandpass', f = 1200, fTo = null, q = 1, gain = 0.3, a = 0.002, when = 0 } = {}) {
+  if (!AUD.on) return;
+  const c = AUD.ctx, t = c.currentTime + when;
+  const src = c.createBufferSource();
+  src.buffer = AUD.noise;
+  src.playbackRate.value = 0.8 + Math.random() * 0.4;
+  const flt = c.createBiquadFilter();
+  flt.type = type;
+  flt.frequency.setValueAtTime(f, t);
+  if (fTo) flt.frequency.exponentialRampToValueAtTime(fTo, t + dur);
+  flt.Q.value = q;
+  const g = c.createGain();
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(gain, t + a);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  src.connect(flt); flt.connect(g); g.connect(AUD.master);
+  src.start(t, Math.random() * 1.5, dur + 0.05);
+}
+
+function playTone(dur, { f = 440, fTo = null, type = 'sine', gain = 0.2, a = 0.002, when = 0 } = {}) {
+  if (!AUD.on) return;
+  const c = AUD.ctx, t = c.currentTime + when;
+  const o = c.createOscillator();
+  o.type = type;
+  o.frequency.setValueAtTime(f, t);
+  if (fTo) o.frequency.exponentialRampToValueAtTime(fTo, t + dur);
+  const g = c.createGain();
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(gain, t + a);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  o.connect(g); g.connect(AUD.master);
+  o.start(t); o.stop(t + dur + 0.05);
+}
+
+// Named sounds: each one is a physical action from the typewriter, paper or room.
+const SFX = {
+  key() {
+    playNoise(0.03, { f: 1700 + Math.random() * 700, q: 2.4, gain: 0.55, a: 0.001 });
+    playTone(0.025, { f: 760 + Math.random() * 220, fTo: 260, gain: 0.16, a: 0.001 });
+  },
+  carriage() { playNoise(0.018, { type: 'highpass', f: 3400, gain: 0.1 }); },
+  bell() { playTone(1.9, { f: 2120, gain: 0.11, a: 0.004 }); playTone(1.6, { f: 4240, gain: 0.035, a: 0.002 }); },
+  ret() {
+    playNoise(0.7, { f: 1500, fTo: 280, q: 0.7, gain: 0.32, a: 0.02 });
+    playTone(0.28, { f: 115, fTo: 58, gain: 0.34, a: 0.005, when: 0.42 });
+  },
+  rustle(len = 0.5) { playNoise(len, { f: 2600, fTo: 1100, q: 0.6, gain: 0.16, a: 0.08 }); },
+  stamp() { playTone(0.26, { f: 96, fTo: 48, gain: 0.5, a: 0.003 }); playNoise(0.09, { f: 620, gain: 0.3, a: 0.001 }); },
+  clunk() { playTone(0.2, { f: 250, fTo: 130, type: 'triangle', gain: 0.32 }); },
+  drawer() { playNoise(0.55, { f: 480, fTo: 900, q: 1, gain: 0.22, a: 0.06 }); playTone(0.12, { f: 150, fTo: 90, gain: 0.25, when: 0.42 }); },
+  tick() { playNoise(0.004, { type: 'highpass', f: 5200, gain: 0.07, a: 0.0005 }); },
+  tock() { playNoise(0.005, { type: 'highpass', f: 3900, gain: 0.05, a: 0.0005 }); },
+  thread() { playNoise(0.14, { f: 4200, q: 0.8, gain: 0.04, a: 0.01 }); },
+  ding() { playTone(0.9, { f: 1560, gain: 0.07, a: 0.01 }); },
+};
+
+function startAmbience() {
+  const c = AUD.ctx;
+  // Radiator hum: a low, slightly buzzing saw through a heavy lowpass
+  const hum = c.createOscillator();
+  hum.type = 'sawtooth'; hum.frequency.value = 50;
+  const humF = c.createBiquadFilter(); humF.type = 'lowpass'; humF.frequency.value = 150;
+  const humG = c.createGain(); humG.gain.value = 0.012;
+  hum.connect(humF); humF.connect(humG); humG.connect(AUD.master); hum.start();
+  // Distant rain: filtered noise loop with a slow swell
+  const rain = c.createBufferSource(); rain.buffer = AUD.noise; rain.loop = true;
+  const rainF = c.createBiquadFilter(); rainF.type = 'lowpass'; rainF.frequency.value = 620;
+  const rainG = c.createGain(); rainG.gain.value = 0.018;
+  rain.connect(rainF); rainF.connect(rainG); rainG.connect(AUD.master); rain.start(0, Math.random());
+  AUD.rain = { g: rainG };
+  // Slow swell on the rain so it is never a flat loop
+  let swell = 0;
+  setInterval(() => {
+    if (!AUD.on) return;
+    swell += 0.35;
+    rainG.gain.setTargetAtTime(0.014 + 0.008 * Math.sin(swell), c.currentTime, 0.8);
+  }, 800);
+}
+
+// Room drone that swells only while a diorama is assembling.
+function droneStart() {
+  if (!AUD.on || AUD.drone) return;
+  const c = AUD.ctx, t = c.currentTime;
+  const o1 = c.createOscillator(); o1.type = 'sine'; o1.frequency.value = 55;
+  const o2 = c.createOscillator(); o2.type = 'sine'; o2.frequency.value = 55.6;
+  const o3 = c.createOscillator(); o3.type = 'sawtooth'; o3.frequency.value = 110.4;
+  const f = c.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 340;
+  const g = c.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.05, t + 4.0);
+  o1.connect(f); o2.connect(f); o3.connect(f); f.connect(g); g.connect(AUD.master);
+  o1.start(); o2.start(); o3.start();
+  AUD.drone = { o1, o2, o3, g };
+}
+function droneStop() {
+  if (!AUD.drone || !AUD.on) return;
+  const { o1, o2, o3, g } = AUD.drone;
+  const t = AUD.ctx.currentTime;
+  g.gain.cancelScheduledValues(t);
+  g.gain.setValueAtTime(g.gain.value, t);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + 2.5);
+  [o1, o2, o3].forEach(o => o.stop(t + 2.6));
+  AUD.drone = null;
+}
+/* ------------------------------------------------------------------ *
+ *  CASE CONTENT
+ *
+ *  Truth (never shown directly):
+ *    Anne Marrow, 22, meant to take the 6.40 to Stennick on Thursday
+ *    7 November 1968 to see a solicitor. She was seen walking to the
+ *    station at about 6.18 p.m. The 6.40 had been cancelled at 5.52 p.m.
+ *    for a signal fault, entered in the day book by T.P. — Thomas Pell,
+ *    who was on relief at the box. Pell told police she boarded. The
+ *    report on file says Saturday 9th, Sallow Lane: his first lie.
+ *
+ *  Markup inside lines:
+ *    "#text"          bold heading line
+ *    "[[text|KEY]]"   redacted until KEY (a fact or a pinned reveal) is filed
+ * ------------------------------------------------------------------ */
+
+const DOCS = {
+  police: {
+    id: 'police', title: 'Missing person report', kind: 'form', stamp: 'COPY',
+    scene: 'sallow', sceneVariant: 'empty', desk: { x: -0.05, z: -0.22, r: 0.06 }, start: true,
+    lines: [
+      '#HOLLIN FORD CONSTABULARY',
+      'REPORT OF MISSING PERSON  (Form MP-2)',
+      '',
+      'Ref: 68/11/0417          Reported: 11 November 1968',
+      'Subject: MARROW, Anne Lisle. Age 22. Teacher, Hollin Ford Infants.',
+      "Reported by: PELL, Thomas (fiancé). Relief signalman, Cutter's Junction.",
+      '',
+      'Last seen: Saturday 9 November 1968, approx. 9.00 p.m., outside the family house, Sallow Lane.',
+      'Subject was wearing a grey coat and carried a brown case.',
+      '',
+      "Informant's additional remark: [[She told me on the Thursday she had changed her mind about Stennick.|F4]]",
+      '',
+      'Enquiries: house-to-house, Sallow Lane. Negative.',
+      'Officer: D. Holloway, Sergeant.',
+    ],
+  },
+
+  clipping: {
+    id: 'clipping', title: 'Gazette clipping', kind: 'clipping', start: true,
+    desk: { x: 0.42, z: 0.28, r: -0.05 },
+    lines: [
+      '#HOLLIN FORD GAZETTE  ·  Tuesday 12 November 1968',
+      '#APPEAL FOR INFORMATION',
+      'Police are appealing for anyone who saw Miss Anne Marrow, 22, a teacher at Hollin Ford Infants, who has not been seen since Saturday last.',
+      "Miss Marrow was last seen leaving the family home in Sallow Lane at about nine o'clock on Saturday evening. She is slim, with fair hair, and was carrying a brown case.",
+      'Her fiancé, Mr Thomas Pell, has made a statement to police and asks that anyone with information come forward.',
+      'Sgt D. Holloway said: "We have no reason to believe foul play. She may simply have gone away for a while."',
+    ],
+  },
+
+  timetable: {
+    id: 'timetable', title: 'Railway timetable', kind: 'timetable', start: true,
+    desk: { x: -0.62, z: 0.42, r: 0.12 },
+    lines: [
+      '#HOLLIN & STENNICK LIGHT RAILWAY',
+      '#Winter timetable 1968 · down services from Hollin Ford',
+      '',
+      '   Dep.   Destination           Days',
+      '   5.10   Stennick              Daily',
+      '   5.58   Stennick              Mon–Fri',
+      '   6.40   Stennick              Thursdays only',
+      '   7.25   Stennick              Daily',
+      "   9.02   Cutter's Junction     Saturdays",
+      '',
+      "Services are subject to signal conditions. Any cancellation will be posted at Hollin Ford station and at Cutter's Junction.",
+    ],
+  },
+
+  photo: {
+    id: 'photo', title: 'Photograph, station yard', kind: 'photo', photoArt: true, scene: 'station', start: true,
+    desk: { x: 0.72, z: -0.12, r: -0.1 },
+    lines: ['Hollin Ford station yard, looking north. A figure at the lamp, waiting.'],
+    back: [
+      '#[[7.11.68|F1]]          6.18',
+      'A., at the lamp.',
+      'T. says the 6.40 is running. I will ask at the box before I go.',
+      'Tell Clare the solicitor is at eleven. — A.',
+    ],
+  },
+
+  edith: {
+    id: 'edith', title: 'Statement, Mrs Edith Corran', kind: 'transcript', scene: 'sallow', sceneVariant: 'figure', start: true,
+    desk: { x: 0.06, z: 0.52, r: 0.18 },
+    lines: [
+      '#STATEMENT OF MRS EDITH CORRAN  ·  taken 12.11.68, amended 13.11.68',
+      'I live at No. 4 Sallow Lane, directly opposite the Marrow house.',
+      'On the evening of Thursday I was at my front window. I saw Anne come out of her door with her brown case and walk down the lane toward the station. It was about a quarter past six. The lamp outside her house was out, as it has been all month.',
+      'I told the constable on the first day that it was Saturday, about nine. That was wrong. It was the Thursday, because the milk came late that day and I was cross about it.',
+      'I did not see her come back.',
+    ],
+  },
+
+  signal_log: {
+    id: 'signal_log', title: "Day book, Cutter's Junction", kind: 'log', scene: 'signalbox', unlock: ['F1'],
+    desk: { x: -0.2, z: -0.5, r: -0.08 },
+    lines: [
+      "#CUTTER'S JUNCTION · SIGNAL BOX · DAY BOOK (extract)",
+      'Date: 7.11.68',
+      '',
+      '17.52   Fault, down home signal, lever will not clear. Down 6.40 ex Hollin Ford CANCELLED. Wired to Hollin Ford.   Entered: [[T.P.|R2]]',
+      '17.55   Notice of cancellation to be posted at Hollin Ford station. Confirmed by telephone.',
+      '18.12   Fault not cleared. Box to remain closed to down traffic.',
+      '18.40   Relief handed over. Fault not cleared.',
+    ],
+  },
+
+  pell: {
+    id: 'pell', title: 'Interview, Thomas Pell', kind: 'transcript', unlock: ['F2'],
+    desk: { x: 0.92, z: 0.56, r: 0.1 },
+    lines: [
+      '#TRANSCRIPT OF INTERVIEW · Mr Thomas Pell · Hollin Ford Police Station · 13.11.68',
+      'Q. You told Sergeant Holloway that Miss Marrow was last seen on Saturday, at the house. Is that right?',
+      'A. No. I was mistaken about the day. I wanted to put it right and I am sorry for the trouble.',
+      'Q. Where did you last see her?',
+      "A. On the platform at Hollin Ford. She was going to Stennick on the 6.40 to see a solicitor about her father's house. I put her brown case on the train myself.",
+      'Q. Did the train leave?',
+      'A. It did. I saw the lamps go down the line.',
+      'Q. Were you on duty that evening?',
+      'A. [[I was at the box until six, then I came straight down to the platform.|F4]]',
+    ],
+  },
+
+  letter: {
+    id: 'letter', title: 'Letter to Clare, undated', kind: 'letter', unlock: ['F2'],
+    desk: { x: -0.5, z: -0.38, r: -0.2 },
+    lines: [
+      '#Dear Clare,',
+      'The solicitor\'s clerk has written again. I can see him on the 7th at eleven. I will take the 6.40 that evening and stay at the Crown, and come home on the Friday.',
+      'T. says he will walk me down to the station. I have not told him what I found in the day book at the box, and I will not, until I am on the train. [[He has been entering things in there for weeks.|F5]]',
+      'Do not tell Mother anything yet.',
+      'A.',
+    ],
+  },
+
+  clare: {
+    id: 'clare', title: 'Letter from Clare Marrow', kind: 'letter', unlock: ['F1'],
+    desk: { x: 1.1, z: -0.12, r: 0.15 },
+    lines: [
+      '#20 November 1968',
+      'To the Officer in Charge, Hollin Ford Constabulary.',
+      "I am writing because my sister has not come to Stennick. The solicitor's clerk tells me she did not keep her appointment on Thursday the 7th, and that no one telephoned to cancel it.",
+      "Your sergeant has told the newspaper it was Saturday. I should be grateful if someone would explain how a woman can be seen on Saturday at nine o'clock when she had already gone to Stennick on the Thursday.",
+      'Yours faithfully, Clare Marrow',
+    ],
+  },
+};
+
+// Order matters: later docs in this list land on top of earlier ones on the desk.
+const DOC_ORDER = ['police', 'clipping', 'timetable', 'photo', 'edith', 'signal_log', 'pell', 'letter', 'clare'];
+
+/* ------------------------------------------------------------------ *
+ *  QUESTIONS / FACTS
+ *  Each fact is a report the player types. `check` decides whether the
+ *  typed line is accepted. `wrong` are the margin notes for a return.
+ * ------------------------------------------------------------------ */
+const matchDate = s => {
+  const t = s.toLowerCase();
+  const day = /\b(7|07|seventh|7th)\b/.test(t);
+  const month = /(nov|\b11\b|\.11\.|\/11\/|-11-|eleventh)/.test(t) || /thursday/.test(t);
+  return day && month;
+};
+const matchPlace = s => /(station|platform|yard)/.test(s.toLowerCase());
+const matchTime = s => /(6[.:h]\s?18|18[.:h]18)/.test(s.toLowerCase());
+const matchNoTrain = s => {
+  const t = s.toLowerCase();
+  const negative = /(cancel|not (run|running|ran)|n['’]?t run|did not|didn['’]?t|never ran|no train|\bno\b)/.test(t);
+  const affirm = /\b(yes|it did|it ran|was running|ran)\b/.test(t) && !/cancel/.test(t);
+  return negative && !affirm;
+};
+const matchInitials = s => /(pell|\bt\.?\s?p\b)/.test(s.toLowerCase());
+
+const FACTS = {
+  F1: {
+    id: 'F1', q: 'On what date was the subject last seen?', label: 'Last seen',
+    value: 'Thursday 7 November 1968', check: matchDate,
+    sources: ['edith', 'timetable', 'clare'],
+    wrong: ['The report says Saturday. Count back from it.', 'Which day does the neighbour name?'],
+    unlocks: ['signal_log', 'clare'],
+  },
+  F2: {
+    id: 'F2', q: 'Where was the subject last seen?', label: 'Place',
+    value: 'Hollin Ford station yard', check: matchPlace,
+    sources: ['photo', 'edith'],
+    wrong: ['A lane is where she lived. Where was she walking?', 'Follow the neighbour down the lane.'],
+    unlocks: ['pell', 'letter'],
+  },
+  F3: {
+    id: 'F3', q: 'At what time was she last seen?', label: 'Time',
+    value: '6.18 p.m.', check: matchTime,
+    sources: ['photo'],
+    wrong: ['The neighbour says about a quarter past. Be more exact.', 'Look at the back of the photograph.'],
+    unlocks: [],
+  },
+  F4: {
+    id: 'F4', q: 'Did the 6.40 to Stennick run that evening?', label: 'The 6.40',
+    value: 'Cancelled. It did not run.', check: matchNoTrain,
+    sources: ['signal_log', 'timetable'],
+    wrong: ['Read the day book before you read the notice.', 'Who says the train ran? Check the box.'],
+    unlocks: [],
+  },
+  F5: {
+    id: 'F5', q: 'Whose initials are entered against the 17.52 fault?', label: 'Entered by',
+    value: 'T.P., Thomas Pell', check: matchInitials,
+    sources: ['signal_log', 'pell'],
+    wrong: ['The initials are in the box, not in the newspaper.', 'Who said she boarded the train?'],
+    unlocks: [],
+  },
+};
+const FACT_ORDER = ['F1', 'F2', 'F3', 'F4', 'F5'];
+const SUMMARY_KEY = 'S';
+const SUMMARY_MIN_FACTS = 4;
+
+// Redaction keys unlock when the matching fact or reveal is filed.
+// Documents with `unlock` appear on the desk after the listed facts are filed.
+// Pinned pairs reveal a hidden note on the document named in `doc`.
+const PAIRS = [
+  {
+    key: 'R1', a: 'timetable', b: 'photo', doc: 'photo',
+    note: 'the date beneath the redaction is a Thursday; the 6.40 runs Thursdays only.',
+    msg: 'A date shows through the back of the photograph.',
+  },
+  {
+    key: 'R2', a: 'signal_log', b: 'pell', doc: 'signal_log',
+    note: 'T.P. was relief on the box from 16.00. Pell was in the box that evening.',
+    msg: 'Two hands on two pages agree on one name.',
+  },
+  {
+    key: 'R3', a: 'edith', b: 'police', doc: 'edith',
+    note: 'first answer, "Saturday, about nine", struck through.',
+    msg: 'The neighbour\'s first answer shows through the report.',
+  },
+];
+
+const ENDING_TEXT = {
+  pell: {
+    head: 'FILED · REFERRED',
+    body: [
+      'The summary is copied in triplicate and sent to the Constabulary. A Detective Inspector who has never been told about this file reads it on the next working day.',
+      "Under the signal box day book, in a different pencil, someone has written 'relief declined'. The drawer does not close.",
+    ],
+  },
+  left: {
+    head: 'FILED · NO FURTHER ACTION',
+    body: [
+      "The file is closed as 'left of her own accord'. Four years later a postcard arrives at the archive, postmarked Stennick. It has been opened and resealed.",
+    ],
+    card: "Stennick, June 1974.\n\nI am well. I am not coming back, and you must not look for me.\nTell Clare the 6.40 never ran.\n\n— A.",
+  },
+  harm: {
+    head: 'FILED · PRESUMED',
+    body: [
+      'Filed as presumed dead. No body has ever been recovered from the river. The lamp in Sallow Lane is still out; the council has not replaced the bulb.',
+      'Nothing else in the drawer is yours to read.',
+    ],
+  },
+  open: {
+    head: 'RETURNED · NO STAMP',
+    body: [
+      'The summary comes back without a stamp. In the margin, in a hand that is not yours, someone has written: The file is not finished. Look again at the day book.',
+      'The clock on the wall has stopped.',
+    ],
+  },
+};
+
+const WRONG_FALLBACK = ['Not quite. Read it again.', 'The paper does not agree with you.'];
+/* ------------------------------------------------------------------ *
+ *  GAME STATE
+ * ------------------------------------------------------------------ */
+const STATE = {
+  mode: 'intro',          // intro | desk | hold | read | recon | type | board | ending
+  facts: {},              // filed fact ids -> true
+  reveals: {},            // pinned reveal keys -> true
+  examined: {},           // doc ids that have been held/read at least once
+  arrived: {},            // doc ids currently on the desk
+  ink: 1.0,               // ribbon ink, 1 = fresh
+  spares: 2,              // spare ribbons in the drawer
+  layer: 0,               // stacking counter for papers on the desk
+  sessionStart: performance.now(),
+  heldId: null,
+  boardPins: [],          // refs on the corkboard in pin order: 'doc:id' or 'fact:F1' or 'ret:n'
+  ended: false,
+};
+
+const isUnlocked = key => !!(STATE.facts[key] || STATE.reveals[key]);
+
+/* ------------------------------------------------------------------ *
+ *  PAPER RENDERING (canvas → texture)
+ * ------------------------------------------------------------------ */
+const SHEET_W = 0.78, SHEET_H = 1.04;   // world size of a sheet
+const CANVAS_W = 800, CANVAS_H = 1067;  // same 3:4 ratio
+const DOC_FS = 22, DOC_LH = 30, DOC_PAD = 62;
+const FONT_BODY = `${DOC_FS}px 'Courier Prime', 'Courier New', monospace`;
+const FONT_BOLD = `bold ${DOC_FS}px 'Courier Prime', 'Courier New', monospace`;
+const FONT_HAND = `26px 'Caveat', cursive`;
+
+function makeCanvas(w = CANVAS_W, h = CANVAS_H) {
+  const c = document.createElement('canvas');
+  c.width = w; c.height = h;
+  return c;
+}
+
+function makeTexture(canvas) {
+  const t = new THREE.CanvasTexture(canvas);
+  t.colorSpace = THREE.SRGBColorSpace;
+  t.anisotropy = 4;
+  return t;
+}
+
+// Split a line into words and redacted words. Redacted words keep their KEY.
+function tokenizeRich(line) {
+  const toks = [];
+  const re = /\[\[(.+?)\]\]/g;
+  let last = 0, m;
+  const pushPlain = s => s.split(/(\s+)/).forEach(p => { if (!p) return; toks.push(/^\s+$/.test(p) ? { sp: true } : { s: p, red: false }); });
+  const pushRed = (s, key) => s.split(/(\s+)/).forEach(p => { if (!p) return; toks.push(/^\s+$/.test(p) ? { sp: true } : { s: p, red: true, key }); });
+  while ((m = re.exec(line))) {
+    pushPlain(line.slice(last, m.index));
+    const [txt, key] = m[1].split('|');
+    pushRed(txt, key);
+    last = re.lastIndex;
+  }
+  pushPlain(line.slice(last));
+  return toks;
+}
+
+// Word-wrap tokens into rows with measured x positions.
+function wrapRich(ctx, line, maxW) {
+  const toks = tokenizeRich(line);
+  const rows = [];
+  let row = [], x = 0, pendingSpace = false;
+  const spaceW = ctx.measureText(' ').width;
+  for (const t of toks) {
+    if (t.sp) { pendingSpace = true; continue; }
+    const w = ctx.measureText(t.s).width;
+    let gap = pendingSpace && row.length ? spaceW : 0;
+    if (x + gap + w > maxW && row.length) { rows.push(row); row = []; x = 0; gap = 0; }
+    x += gap;
+    row.push({ ...t, x, w });
+    x += w;
+    pendingSpace = false;
+  }
+  if (row.length) rows.push(row);
+  return rows;
+}
+
+// Draw wrapped rows. Locked redactions become black bars; unlocked ones print.
+function drawRows(ctx, rows, x0, y, lh, fs, ink = 'rgba(33,29,23,1)') {
+  rows.forEach((row, ri) => {
+    const yy = y + ri * lh;
+    row.forEach(t => {
+      const x = x0 + t.x;
+      if (t.red && !isUnlocked(t.key)) {
+        ctx.fillStyle = '#16140f';
+        ctx.fillRect(x - 1, yy - fs * 0.78, t.w + 2, fs * 0.92);
+      } else {
+        const a = 0.8 + 0.18 * hash01(t.s + ri, 7);
+        ctx.fillStyle = ink.replace(/,1\)$/, `,${a.toFixed(2)})`);
+        ctx.fillText(t.s, x, yy);
+      }
+    });
+  });
+  return y + rows.length * lh;
+}
+
+// Print a block of document lines. Returns the y after the block.
+function drawBlock(ctx, lines, y, maxW, opts = {}) {
+  ctx.textBaseline = 'alphabetic';
+  for (const raw of lines) {
+    if (raw === '') { y += DOC_LH * 0.6; continue; }
+    const isHead = raw.startsWith('#');
+    const text = isHead ? raw.slice(1) : raw;
+    ctx.font = isHead ? FONT_BOLD : FONT_BODY;
+    const rows = wrapRich(ctx, text, maxW);
+    y = drawRows(ctx, rows, opts.x ?? DOC_PAD, y + DOC_LH * 0.85, DOC_LH, DOC_FS) - DOC_LH * 0.85;
+    y += DOC_LH * 0.35;
+  }
+  return y;
+}
+
+// Handwritten marginalia for revealed pairs that touch this document.
+function drawReveals(ctx, doc, H) {
+  const notes = PAIRS.filter(p => p.doc === doc.id && STATE.reveals[p.key]);
+  if (!notes.length) return;
+  ctx.font = FONT_HAND;
+  ctx.fillStyle = 'rgba(45,58,76,0.92)';
+  let y = H - 120 - (notes.length - 1) * 74;
+  notes.forEach(p => {
+    const rows = wrapRich(ctx, '— ' + p.note, CANVAS_W - DOC_PAD * 2);
+    drawRows(ctx, rows, DOC_PAD, y, 30, 26, 'rgba(45,58,76,1)');
+    y += rows.length * 30 + 14;
+  });
+}
+
+function paperBackground(ctx, w, h, tone) {
+  ctx.fillStyle = tone;
+  ctx.fillRect(0, 0, w, h);
+  // fibre flecks, stable per document
+  for (let i = 0; i < 1400; i++) {
+    const x = hash01('f' + i, 3) * w, y = hash01('y' + i, 5) * h;
+    ctx.fillStyle = `rgba(70,52,28,${(0.03 + 0.05 * hash01('a' + i, 9)).toFixed(3)})`;
+    ctx.fillRect(x, y, 1 + hash01('s' + i, 2) * 2.2, 1 + hash01('t' + i, 4) * 1.4);
+  }
+  // soft tea stains
+  for (let i = 0; i < 2; i++) {
+    const cx = hash01('sx' + i, 11) * w, cy = hash01('sy' + i, 13) * h;
+    const g = ctx.createRadialGradient(cx, cy, 10, cx, cy, 170 + hash01('sr' + i) * 120);
+    g.addColorStop(0, 'rgba(120,88,40,0.09)');
+    g.addColorStop(1, 'rgba(120,88,40,0)');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, w, h);
+  }
+  // darkened edges, like a sheet that has been handled
+  const v = ctx.createRadialGradient(w / 2, h / 2, w * 0.35, w / 2, h / 2, w * 0.78);
+  v.addColorStop(0, 'rgba(0,0,0,0)');
+  v.addColorStop(1, 'rgba(30,22,10,0.32)');
+  ctx.fillStyle = v; ctx.fillRect(0, 0, w, h);
+}
+
+function stampMark(ctx, text, x, y, angle, color = 'rgba(122,46,38,0.62)', size = 30) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(angle);
+  ctx.font = `${size}px 'Special Elite', 'Courier Prime', monospace`;
+  const w = ctx.measureText(text).width;
+  ctx.strokeStyle = color; ctx.lineWidth = 3;
+  ctx.strokeRect(-w / 2 - 12, -size * 0.85, w + 24, size * 1.25);
+  ctx.fillStyle = color;
+  ctx.textAlign = 'center';
+  ctx.fillText(text, 0, 0);
+  ctx.restore();
+  ctx.textAlign = 'left';
+}
+
+// Photograph: a drawn grey print of the station yard, one warm lamp.
+function drawPhotoArt(ctx, x, y, w, h) {
+  const sky = ctx.createLinearGradient(0, y, 0, y + h);
+  sky.addColorStop(0, '#5d6266'); sky.addColorStop(0.6, '#8b8f8c'); sky.addColorStop(1, '#3f4245');
+  ctx.fillStyle = sky; ctx.fillRect(x, y, w, h);
+  // distant building block
+  ctx.fillStyle = '#3a3d40'; ctx.fillRect(x, y + h * 0.28, w * 0.32, h * 0.42);
+  ctx.fillStyle = '#4b4f52'; ctx.fillRect(x + w * 0.05, y + h * 0.36, w * 0.06, h * 0.07);
+  ctx.fillRect(x + w * 0.16, y + h * 0.36, w * 0.06, h * 0.07);
+  // train carriage, faint, on the right
+  ctx.fillStyle = '#50565a'; ctx.fillRect(x + w * 0.62, y + h * 0.48, w * 0.36, h * 0.16);
+  ctx.fillStyle = '#2b2f32';
+  for (let i = 0; i < 5; i++) ctx.fillRect(x + w * (0.65 + i * 0.065), y + h * 0.52, w * 0.04, h * 0.05);
+  // platform edge
+  ctx.fillStyle = '#2e3134'; ctx.fillRect(x, y + h * 0.66, w, h * 0.34);
+  ctx.fillStyle = '#6f7470'; ctx.fillRect(x, y + h * 0.66, w, 3);
+  // lamp post and its warm pool of light (the only warm thing in the room)
+  const lx = x + w * 0.46, ly = y + h * 0.16;
+  ctx.fillStyle = '#25282a'; ctx.fillRect(lx - 3, ly, 6, h * 0.5);
+  const glow = ctx.createRadialGradient(lx, ly, 4, lx, ly, w * 0.3);
+  glow.addColorStop(0, 'rgba(255,196,120,0.85)');
+  glow.addColorStop(0.35, 'rgba(230,150,80,0.22)');
+  glow.addColorStop(1, 'rgba(230,150,80,0)');
+  ctx.fillStyle = glow; ctx.fillRect(x, y, w, h);
+  ctx.fillStyle = '#ffd39a'; ctx.beginPath(); ctx.arc(lx, ly, 5, 0, Math.PI * 2); ctx.fill();
+  // figure at the lamp: small, a case at its side
+  const fx = x + w * 0.5, fy = y + h * 0.66;
+  ctx.fillStyle = '#1d1f21';
+  ctx.beginPath(); ctx.arc(fx, fy - 56, 7, 0, Math.PI * 2); ctx.fill();
+  ctx.fillRect(fx - 7, fy - 48, 14, 38);
+  ctx.fillRect(fx - 6, fy - 10, 5, 12); ctx.fillRect(fx + 2, fy - 10, 5, 12);
+  ctx.fillStyle = '#4b3a28'; ctx.fillRect(fx + 9, fy - 26, 14, 18);
+  // print grain over the image
+  for (let i = 0; i < 900; i++) {
+    ctx.fillStyle = `rgba(0,0,0,${(0.03 + 0.05 * hash01('pg' + i, 21)).toFixed(3)})`;
+    ctx.fillRect(x + hash01('px' + i, 22) * w, y + hash01('py' + i, 23) * h, 1.5, 1.5);
+  }
+  // thin border, the way a print is trimmed
+  ctx.strokeStyle = 'rgba(20,18,14,0.7)'; ctx.lineWidth = 2; ctx.strokeRect(x, y, w, h);
+}
+
+// Render one face (front or back) of a document into its canvas.
+function renderFace(doc, side) {
+  const canvas = doc.canvases[side];
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  const tone = doc.docKind === 'photo' ? '#bfb8a0' : (doc.docKind === 'letter' ? '#cfc6ac' : '#cbc4ab');
+  paperBackground(ctx, W, H, tone);
+  let y = 84;
+  if (side === 'front' && doc.photoArt) {
+    ctx.fillStyle = '#e9e4d2';
+    ctx.fillRect(DOC_PAD - 14, 60, W - (DOC_PAD - 14) * 2, 400);   // print border
+    drawPhotoArt(ctx, DOC_PAD, 74, W - DOC_PAD * 2, 372);
+    y = 510;
+  }
+  if (doc.stamp && side === 'front') stampMark(ctx, doc.stamp, W - 150, 64, -0.08);
+  const lines = side === 'front' ? doc.lines : doc.back;
+  if (lines) y = drawBlock(ctx, lines, y, W - DOC_PAD * 2);
+  if (side === 'front') drawReveals(ctx, doc, H);
+  if (side === 'back' && doc.photoArt) {
+    ctx.font = FONT_BODY; ctx.fillStyle = 'rgba(33,29,23,0.5)';
+    ctx.fillText('— reverse —', DOC_PAD, H - 40);
+  }
+}
+
+/* ------------------------------------------------------------------ *
+ *  SHEET OBJECTS
+ *  A sheet is a thin slab with a front and back face. Document sheets
+ *  are created from DOCS; dynamic sheets (filed and returned reports)
+ *  come with a ready canvas.
+ * ------------------------------------------------------------------ */
+const DOCO = {};          // id -> sheet object
+const sheetEdgeMat = new THREE.MeshStandardMaterial({ color: '#b3ab92', roughness: 1, metalness: 0 });
+
+function buildSheetMesh(obj) {
+  const g = new THREE.Group();
+  const body = new THREE.Mesh(new THREE.BoxGeometry(SHEET_W, SHEET_H, 0.004), sheetEdgeMat);
+  body.castShadow = true; body.receiveShadow = true;
+  const frontMat = new THREE.MeshStandardMaterial({ map: obj.tex.front, roughness: 1, metalness: 0, emissive: '#100e0a', emissiveIntensity: 1 });
+  const front = new THREE.Mesh(new THREE.PlaneGeometry(SHEET_W, SHEET_H), frontMat);
+  front.position.z = 0.0021; front.receiveShadow = true;
+  const back = new THREE.Mesh(new THREE.PlaneGeometry(SHEET_W, SHEET_H),
+    new THREE.MeshStandardMaterial({ map: obj.tex.back || obj.tex.front, roughness: 1, metalness: 0 }));
+  back.rotation.y = Math.PI; back.position.z = -0.0021; back.receiveShadow = true;
+  [body, front, back].forEach(m => { m.userData.sheet = obj; });
+  g.add(body, front, back);
+  obj.group = g; obj.meshes = [body, front, back];
+  obj.frontMat = frontMat;
+  return g;
+}
+
+function createDocSheet(id) {
+  const d = DOCS[id];
+  const obj = {
+    id, kind: 'doc', data: d, canvases: { front: makeCanvas() }, tex: {},
+    docKind: d.kind, lines: d.lines, back: d.back, photoArt: !!d.photoArt, stamp: d.stamp,
+  };
+  if (d.back) obj.canvases.back = makeCanvas();
+  for (const side of Object.keys(obj.canvases)) {
+    renderFace(obj, side);
+    obj.tex[side] = makeTexture(obj.canvases[side]);
+  }
+  obj.title = d.title;
+  obj.scene = d.scene || null;
+  obj.sceneVariant = d.sceneVariant || null;
+  obj.desk = d.desk;
+  obj.spot = { ...d.desk };
+  obj.snippet = (d.lines || []).filter(l => l && !l.startsWith('#')).slice(0, 2);
+  buildSheetMesh(obj);
+  DOCO[id] = obj;
+  return obj;
+}
+
+function refreshDoc(id) {
+  const obj = DOCO[id];
+  if (!obj || obj.kind !== 'doc') return;
+  for (const side of Object.keys(obj.canvases)) {
+    renderFace(obj, side);
+    obj.tex[side].needsUpdate = true;
+  }
+}
+
+// A sheet made at runtime from a finished canvas (filed or returned reports).
+function createDynamicSheet(id, canvas, title, snippet) {
+  const obj = { id, kind: 'dynamic', canvases: { front: canvas }, tex: { front: makeTexture(canvas) } };
+  obj.title = title;
+  obj.snippet = snippet;
+  obj.scene = null;
+  buildSheetMesh(obj);
+  DOCO[id] = obj;
+  return obj;
+}
+
+// Text for a card on the corkboard: visible words, with locked words as bars.
+function sheetPlainText(line) {
+  return line.replace(/\[\[(.+?)\]\]/g, (m, inner) => {
+    const [txt, key] = inner.split('|');
+    return isUnlocked(key) ? txt : '█'.repeat(Math.max(3, Math.min(14, txt.length)));
+  });
+}
+/* ------------------------------------------------------------------ *
+ *  RENDERER, CAMERA, POST, FOG
+ * ------------------------------------------------------------------ */
+const stage = document.getElementById('stage');
+const renderer = new THREE.WebGLRenderer({ canvas: stage, antialias: true, powerPreference: 'high-performance' });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setSize(window.innerWidth, window.innerHeight, false);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color('#07080a');
+scene.fog = new THREE.FogExp2('#0b0c0e', 0.12);
+
+const camera = new THREE.PerspectiveCamera(34, window.innerWidth / window.innerHeight, 0.05, 80);
+const camBase = new THREE.Vector3(0, 2.9, 5.4);   // where the camera sits before drift
+const camLook = new THREE.Vector3(0, 0.6, 0);     // where it looks
+const camOrbit = { on: false, cx: 0, cy: 0.7, cz: 0, r: 4.8, y: 2.5, a: 0, speed: 0.05 };
+const drift = { amp: 0.02, t: 0 };
+
+/* ---- Materials and shape helpers. Everything is clay: matte, no textures. ---- */
+const matCache = new Map();
+function clay(color, roughness = 1) {
+  const key = color + '|' + roughness;
+  if (!matCache.has(key)) matCache.set(key, new THREE.MeshStandardMaterial({ color, roughness, metalness: 0 }));
+  return matCache.get(key);
+}
+function glow(color, intensity = 1.2) {
+  const key = 'glow|' + color + '|' + intensity;
+  if (!matCache.has(key)) matCache.set(key, new THREE.MeshStandardMaterial({ color: '#111', emissive: color, emissiveIntensity: intensity, roughness: 1 }));
+  return matCache.get(key);
+}
+function put(mesh, parent, x = 0, y = 0, z = 0, rx = 0, ry = 0, rz = 0) {
+  mesh.position.set(x, y, z);
+  mesh.rotation.set(rx, ry, rz);
+  mesh.castShadow = true;
+  mesh.receiveShadow = true;
+  if (parent) parent.add(mesh);
+  return mesh;
+}
+const boxM = (w, h, d, mat, parent, x, y, z, rx, ry, rz) => put(new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat), parent, x, y, z, rx, ry, rz);
+const cylM = (rt, rb, h, seg, mat, parent, x, y, z, rx, ry, rz) => put(new THREE.Mesh(new THREE.CylinderGeometry(rt, rb, h, seg), mat), parent, x, y, z, rx, ry, rz);
+const sphM = (r, mat, parent, x, y, z) => put(new THREE.Mesh(new THREE.SphereGeometry(r, 16, 12), mat), parent, x, y, z);
+const capM = (r, len, mat, parent, x, y, z) => put(new THREE.Mesh(new THREE.CapsuleGeometry(r, len, 4, 10), mat), parent, x, y, z);
+function group(parent, x = 0, y = 0, z = 0) {
+  const g = new THREE.Group();
+  g.position.set(x, y, z);
+  if (parent) parent.add(g);
+  return g;
+}
+
+/* ---- Lights. The desk has one practical: the lamp. ---- */
+const hemi = new THREE.HemisphereLight('#4a5a68', '#0a0b0c', 0.5);
+scene.add(hemi);
+const fill = new THREE.DirectionalLight('#8b97a2', 0.2);
+fill.position.set(-2, 4, 3.5);
+scene.add(fill);
+// Reading fill: soft light from the front, on only while a paper is held up to be read.
+const readFill = new THREE.DirectionalLight('#e8e0cc', 0);
+readFill.position.set(0.3, 1.8, 3.2);
+readFill.target.position.set(0, 1.2, 1.0);
+scene.add(readFill, readFill.target);
+
+const lampSpot = new THREE.SpotLight('#ffb36b', 15, 0, 0.6, 0.9, 2);
+lampSpot.position.set(1.62, 1.02, -0.42);
+lampSpot.target.position.set(0.5, 0, 0.2);
+lampSpot.castShadow = true;
+lampSpot.shadow.mapSize.set(2048, 2048);
+lampSpot.shadow.bias = -0.0003;
+lampSpot.shadow.normalBias = 0.02;
+lampSpot.shadow.camera.near = 0.3;
+lampSpot.shadow.camera.far = 6;
+scene.add(lampSpot, lampSpot.target);
+
+/* ---- Post: depth of field (diorama only), vignette and grain ---- */
+const composer = new EffectComposer(renderer);
+composer.addPass(new RenderPass(scene, camera));
+const bokeh = new BokehPass(scene, camera, { focus: 4.2, aperture: 0.02, maxblur: 0.006 });
+bokeh.enabled = false;
+composer.addPass(bokeh);
+const GrainShader = {
+  uniforms: {
+    tDiffuse: { value: null },
+    uTime: { value: 0 },
+    uGrain: { value: 0.01 },
+    uVig: { value: 0.6 },
+  },
+  vertexShader: `
+    varying vec2 vUv;
+    void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
+  fragmentShader: `
+    uniform sampler2D tDiffuse;
+    uniform float uTime;
+    uniform float uGrain;
+    uniform float uVig;
+    varying vec2 vUv;
+    float rnd(vec2 co){ return fract(sin(dot(co, vec2(12.9898, 78.233))) * 43758.5453); }
+    void main(){
+      vec4 c = texture2D(tDiffuse, vUv);
+      vec2 d = vUv - 0.5;
+      d.x *= 1.2;
+      float r = length(d);
+      float v = 1.0 - uVig * smoothstep(0.22, 0.8, r);
+      float n = rnd(gl_FragCoord.xy + fract(uTime * 0.31) * 97.0) - 0.5;
+      gl_FragColor = vec4(c.rgb * v + n * uGrain, c.a);
+    }`,
+};
+const grainPass = new ShaderPass(GrainShader);
+composer.addPass(grainPass);
+composer.addPass(new OutputPass());
+
+/* ---- Volumetric haze: soft sprites that drift slowly through the room. ---- */
+function softDiscTexture() {
+  const c = makeCanvas(128, 128);
+  const ctx = c.getContext('2d');
+  const g = ctx.createRadialGradient(64, 64, 0, 64, 64, 64);
+  g.addColorStop(0, 'rgba(255,255,255,1)');
+  g.addColorStop(0.45, 'rgba(255,255,255,0.35)');
+  g.addColorStop(1, 'rgba(255,255,255,0)');
+  ctx.fillStyle = g; ctx.fillRect(0, 0, 128, 128);
+  return new THREE.CanvasTexture(c);
+}
+const fogTex = softDiscTexture();
+const fogGroup = new THREE.Group();
+scene.add(fogGroup);
+const fogSprites = [];
+for (let i = 0; i < 42; i++) {
+  const mat = new THREE.SpriteMaterial({ map: fogTex, color: new THREE.Color('#7f898e'), transparent: true, opacity: rr(0.025, 0.055), depthWrite: false });
+  const s = new THREE.Sprite(mat);
+  s.scale.setScalar(rr(2.2, 4.6));
+  const base = new THREE.Vector3(rr(-3.4, 3.4), rr(0.05, 2.6), rr(-2.2, 0.2));
+  s.position.copy(base);
+  s.userData = { base, ph: Math.random() * TAU, sp: rr(0.04, 0.09), amp: rr(0.2, 0.5) };
+  fogGroup.add(s);
+  fogSprites.push(s);
+}
+function updateFog(t) {
+  for (const s of fogSprites) {
+    const u = s.userData;
+    s.position.set(
+      u.base.x + Math.sin(t * u.sp + u.ph) * u.amp,
+      u.base.y + Math.sin(t * u.sp * 0.7 + u.ph * 2) * 0.08,
+      u.base.z + Math.cos(t * u.sp + u.ph) * u.amp * 0.6,
+    );
+  }
+}
+
+function resize() {
+  const w = window.innerWidth, h = window.innerHeight;
+  renderer.setSize(w, h, false);
+  composer.setPixelRatio(renderer.getPixelRatio());
+  composer.setSize(w, h);
+  camera.aspect = w / h;
+  // Keep the desk in frame on narrow windows by backing the camera off.
+  camera.fov = w / h < 1.2 ? 44 : 34;
+  camera.updateProjectionMatrix();
+}
+window.addEventListener('resize', resize);
+resize();
+/* ------------------------------------------------------------------ *
+ *  THE RECORDS ROOM: walls, desk, lamp, drawer, typewriter, clock
+ * ------------------------------------------------------------------ */
+const ROOM = group(scene);     // walls, wall clock, corkboard wall, radiator
+const DESK = group(scene);     // desk, lamp, drawer, typewriter, typing sheet
+const SHEETS = group(scene);   // every paper sheet that can be picked up
+
+const TW = { x: -1.2, z: -0.15, ry: 0.12 };   // typewriter placement
+const TYPE_SHEET_Z = -0.43;                    // sheet sits behind the platen
+const LAMP = { x: 1.62, z: -0.42 };
+const HOLD_POS = new THREE.Vector3(0, 1.2, 1.0);
+
+const D = { pick: [] };   // raycast targets with userData.pick
+
+/* ---- Walls and floor ---- */
+{
+  const floor = new THREE.Mesh(new THREE.PlaneGeometry(16, 16), clay('#17191b'));
+  floor.rotation.x = -Math.PI / 2; floor.position.y = -1.0; floor.receiveShadow = true;
+  ROOM.add(floor);
+  const wall = new THREE.Mesh(new THREE.PlaneGeometry(16, 9), clay('#22262a'));
+  wall.position.set(0, 3.5, -1.45); wall.receiveShadow = true;
+  ROOM.add(wall);
+}
+
+/* ---- Desk: top, legs, pedestal with drawer ---- */
+const deskTopMat = clay('#4a4637');
+const deskTop = boxM(4.0, 0.1, 1.9, deskTopMat, DESK, 0, -0.05, 0);
+for (const [x, z] of [[-1.9, -0.85], [1.9, -0.85], [-1.9, 0.85], [1.9, 0.85]]) {
+  boxM(0.12, 0.92, 0.12, clay('#3a372d'), DESK, x, -0.51, z);
+}
+D.pedestal = boxM(0.9, 0.86, 1.6, clay('#403d33'), DESK, 1.35, -0.52, 0);   // pedestal
+D.pedestal.userData.blocker = true;
+
+// Drawer: the panel is on the pedestal front, the tray slides out from it.
+const drawer = { g: group(DESK, 1.35, -0.3, 0.8), open: false, t: 0, spool: null };
+drawer.panel = boxM(0.7, 0.2, 0.03, clay('#524e41'), drawer.g, 0, 0, 0.012);
+boxM(0.1, 0.02, 0.03, clay('#1d1c19'), drawer.g, 0, 0.02, 0.04);                // handle
+drawer.tray = group(drawer.g, 0, 0, 0);
+boxM(0.66, 0.02, 1.25, clay('#2d2b25'), drawer.tray, 0, -0.08, -0.62);          // tray floor
+boxM(0.66, 0.14, 0.02, clay('#33312a'), drawer.tray, 0, -0.01, -1.24);           // back wall
+boxM(0.02, 0.14, 1.25, clay('#33312a'), drawer.tray, -0.33, -0.01, -0.62);
+boxM(0.02, 0.14, 1.25, clay('#33312a'), drawer.tray, 0.33, -0.01, -0.62);
+// The ribbon spool. It is the thing that gets replaced.
+drawer.spool = cylM(0.08, 0.08, 0.1, 18, clay('#1c1b18'), drawer.tray, 0.02, 0.06, -0.2, 0, 0, Math.PI / 2);
+drawer.spool.userData.pick = 'spool';
+drawer.spoolCore = cylM(0.04, 0.04, 0.12, 14, clay('#8f8771'), drawer.tray, 0.02, 0.06, -0.2, 0, 0, Math.PI / 2);
+drawer.spares = [];
+for (let i = 0; i < 3; i++) {
+  const s = cylM(0.05, 0.05, 0.08, 14, clay('#26241f'), drawer.tray, -0.16 + i * 0.13, 0.03, -0.5, 0, 0, Math.PI / 2);
+  drawer.spares.push(s);
+}
+drawer.panel.userData.pick = 'drawer';
+drawer.g.add(drawer.tray);
+D.drawer = drawer;
+D.pick.push(drawer.panel, drawer.spool);
+
+/* ---- Desk lamp: the room's one practical light ---- */
+const lampGroup = group(DESK, LAMP.x, 0, LAMP.z);
+cylM(0.16, 0.18, 0.04, 24, clay('#2d2a24'), lampGroup, 0, 0.02, 0);
+cylM(0.022, 0.024, 0.92, 10, clay('#2d2a24'), lampGroup, 0, 0.48, 0);
+const lampHead = group(lampGroup, 0, 1.0, 0);
+boxM(0.04, 0.04, 0.3, clay('#2d2a24'), lampHead, 0, 0, 0.12, 0.45, 0, 0);
+const shade = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.26, 0.26, 24, 1, true),
+  new THREE.MeshStandardMaterial({ color: '#2f2c25', roughness: 1, side: THREE.DoubleSide }));
+put(shade, lampHead, 0, -0.1, 0.12, 0.45, 0, 0);
+const bulb = sphM(0.055, glow('#ffc07a', 2.4), lampHead, 0, -0.17, 0.12);
+bulb.castShadow = false;
+lampSpot.position.copy(new THREE.Vector3(LAMP.x, 1.0, LAMP.z).add(new THREE.Vector3(0, -0.2, 0.12)));
+lampSpot.target.position.set(0.55, 0, 0.2);
+
+/* ---- The typewriter ---- */
+const TYPEWRITER = { root: group(DESK, TW.x, 0, TW.z), keys: [], arm: null, pivot: null, carriage: null, platen: null };
+TYPEWRITER.root.rotation.y = TW.ry;
+{
+  const tw = TYPEWRITER.root;
+  const body = clay('#34362f');
+  const dark = clay('#2a2c26');
+  const base = boxM(1.25, 0.2, 0.72, body, tw, 0, 0.1, 0);   // base
+  base.userData.pick = 'typewriter';
+  D.pick.push(base);
+  boxM(1.2, 0.04, 0.66, dark, tw, 0, 0.22, 0);               // deck
+  boxM(1.25, 0.25, 0.04, dark, tw, 0, 0.42, -0.34);          // rear hood, holds the sheet
+  // Keyboard, tilted toward the typist
+  const kb = group(tw, 0, 0.24, 0.1);
+  kb.rotation.x = -0.22;
+  const rows = [[10, 0.03], [9, 0.1], [8, 0.17]];
+  const keyMat = clay('#1f1d19');
+  for (let r = 0; r < rows.length; r++) {
+    const [n, z] = rows[r];
+    for (let i = 0; i < n; i++) {
+      const x = (i - (n - 1) / 2) * 0.078 + (r === 1 ? 0.0 : r === 2 ? 0.02 : 0);
+      const k = cylM(0.026, 0.028, 0.03, 12, keyMat, kb, x, 0.02, z - 0.02);
+      TYPEWRITER.keys.push(k);
+    }
+  }
+  const space = boxM(0.34, 0.03, 0.06, keyMat, kb, 0, 0.02, 0.25);
+  TYPEWRITER.keys.push(space);
+  // Typebar: one arm that swings up toward the platen on every key
+  TYPEWRITER.pivot = group(tw, 0, 0.24, 0.02);
+  TYPEWRITER.arm = boxM(0.02, 0.02, 0.34, clay('#8c8778'), TYPEWRITER.pivot, 0, 0.02, -0.17);
+  // Carriage: a platen on a bar that slides under the sheet
+  TYPEWRITER.carriage = group(tw, 0, 0.5, -0.25);
+  TYPEWRITER.platen = cylM(0.045, 0.045, 1.04, 20, clay('#1d1c19'), TYPEWRITER.carriage, 0, 0.0, 0, 0, 0, Math.PI / 2);
+  boxM(1.2, 0.03, 0.05, clay('#2c2d28'), TYPEWRITER.carriage, 0, -0.07, 0);
+  cylM(0.035, 0.035, 0.06, 14, clay('#4b4637'), TYPEWRITER.carriage, 0.6, 0.0, 0.02, 0, 0, Math.PI / 2);
+  // Paper-tray knobs and a little brand plate, for the eye
+  cylM(0.02, 0.02, 0.05, 10, clay('#8c8778'), tw, -0.58, 0.44, -0.2, 0, 0, Math.PI / 2);
+  boxM(0.22, 0.02, 0.06, clay('#7b7463'), tw, -0.42, 0.12, 0.36);
+}
+
+// Each key is hashed to one of the keys so the same letter always strikes the same key.
+function keyFor(ch) {
+  const n = TYPEWRITER.keys.length;
+  return TYPEWRITER.keys[ch.charCodeAt(0) % n];
+}
+
+// The typing sheet: one canvas, redrawn on every keystroke.
+const TYPE = { canvas: makeCanvas(), mesh: null, tex: null, pos: new THREE.Vector3(TW.x, 1.04, TYPE_SHEET_Z) };
+TYPE.tex = makeTexture(TYPE.canvas);
+TYPE.mesh = new THREE.Mesh(new THREE.PlaneGeometry(SHEET_W, SHEET_H),
+  new THREE.MeshStandardMaterial({ map: TYPE.tex, roughness: 1, metalness: 0, emissive: '#18150f', emissiveIntensity: 1 }));
+TYPE.mesh.position.set(TW.x, 3.2, TYPE_SHEET_Z);
+TYPE.mesh.castShadow = false;
+TYPE.mesh.receiveShadow = true;
+TYPE.mesh.visible = false;
+DESK.add(TYPE.mesh);
+
+/* ---- Clock on the back wall. Its hands follow the real time. ---- */
+const CLOCK = { g: group(ROOM, -1.75, 1.95, -1.36), hh: null, mh: null, sh: null };
+cylM(0.25, 0.25, 0.05, 32, clay('#2a2a27'), CLOCK.g, 0, 0, 0.01, Math.PI / 2, 0, 0);
+cylM(0.2, 0.2, 0.04, 32, clay('#c5bda4'), CLOCK.g, 0, 0, 0.035, Math.PI / 2, 0, 0);
+for (let i = 0; i < 12; i++) {
+  const a = (i / 12) * TAU;
+  boxM(0.012, 0.03, 0.01, clay('#2a2a27'), CLOCK.g, Math.sin(a) * 0.165, Math.cos(a) * 0.165, 0.06, 0, 0, -a);
+}
+CLOCK.hh = group(CLOCK.g, 0, 0, 0.07); boxM(0.018, 0.12, 0.01, clay('#1d1d1b'), CLOCK.hh, 0, 0.06, 0);
+CLOCK.mh = group(CLOCK.g, 0, 0, 0.075); boxM(0.012, 0.17, 0.01, clay('#1d1d1b'), CLOCK.mh, 0, 0.085, 0);
+CLOCK.sh = group(CLOCK.g, 0, 0, 0.08); boxM(0.006, 0.19, 0.008, clay('#7a3a31'), CLOCK.sh, 0, 0.05, 0);
+const clockFace = CLOCK.g.children[1];
+clockFace.userData.pick = 'clock';
+D.pick.push(clockFace);
+CLOCK.stopped = false;
+
+/* ---- Corkboard on the wall (the 3D board; the working board opens as an overlay) ---- */
+const CORK = { g: group(ROOM, 0.25, 1.5, -1.38) };
+boxM(2.42, 1.48, 0.05, clay('#2c2118'), CORK.g, 0, 0, -0.01);
+const corkMesh = boxM(2.3, 1.36, 0.04, clay('#6b5a43', 1), CORK.g, 0, 0, 0.005);
+corkMesh.userData.pick = 'board';
+D.pick.push(corkMesh);
+for (let i = 0; i < 11; i++) {
+  const slip = new THREE.Mesh(new THREE.PlaneGeometry(rr(0.12, 0.2), rr(0.09, 0.14)), clay(i % 3 ? '#c5bea6' : '#b9b08f'));
+  slip.position.set(rr(-1.0, 1.0), rr(-0.5, 0.5), 0.03);
+  slip.rotation.z = rr(-0.3, 0.3);
+  CORK.g.add(slip);
+  const pin = sphM(0.018, glow('#7a2a24', 0.2), CORK.g, slip.position.x, slip.position.y + 0.05, 0.05);
+  pin.castShadow = false;
+}
+
+/* ---- Radiator under the left wall ---- */
+const RAD = group(ROOM, -1.9, 0.35, -1.3);
+for (let i = 0; i < 7; i++) cylM(0.032, 0.032, 0.6, 12, clay('#3b3d3c'), RAD, (i - 3) * 0.09, 0, 0.05);
+boxM(0.7, 0.04, 0.12, clay('#3b3d3c'), RAD, 0, 0.3, 0.05);
+boxM(0.7, 0.04, 0.12, clay('#3b3d3c'), RAD, 0, -0.3, 0.05);
+
+/* ------------------------------------------------------------------ *
+ *  Typewriter animation: keystroke, carriage, return, bell.
+ * ------------------------------------------------------------------ */
+const TYPE_ANIM = { carriageX: 0, targetX: 0 };
+function typebarStrike() {
+  killTweens('arm');
+  const p = TYPEWRITER.pivot;
+  tween({ dur: 0.07, tag: 'arm', ease: easeIn, onUpdate: k => { p.rotation.x = -0.75 * k; } ,
+    onDone: () => tween({ dur: 0.12, tag: 'arm', ease: easeOut, onUpdate: k => { p.rotation.x = -0.75 * (1 - k); } }) });
+}
+function keyPress(ch) {
+  const k = keyFor(ch);
+  if (!k) return;
+  const y0 = k.position.y;
+  tween({ dur: 0.05, tag: 'k' + k.uuid, onUpdate: t => { k.position.y = y0 - 0.012 * t; },
+    onDone: () => tween({ dur: 0.1, tag: 'k' + k.uuid, onUpdate: t => { k.position.y = y0 - 0.012 * (1 - t); } }) });
+}
+function carriageTo(x, dur = 0.06) {
+  const x0 = TYPE_ANIM.carriageX;
+  killTweens('carriage');
+  tween({ dur, tag: 'carriage', ease: easeOut, onUpdate: k => {
+    TYPE_ANIM.carriageX = lerp(x0, x, k);
+    TYPEWRITER.carriage.position.x = TYPE_ANIM.carriageX;
+  } });
+}
+
+/* ---- Pose helpers for the desk-level camera ---- */
+const TYPE_CAM = { p: new THREE.Vector3(TW.x + 0.02, 1.25, 1.55), l: new THREE.Vector3(TW.x, 1.08, TYPE_SHEET_Z) };
+/* ------------------------------------------------------------------ *
+ *  TYPING: the sheet, the keys, the ribbon, the answers.
+ *  No backspace. Four x's in a row strike out the word before them.
+ * ------------------------------------------------------------------ */
+const COLS = 40;             // characters per line on the report
+const BELL_COL = 36;         // the bell rings here, as on a real machine
+const MAX_ROWS = 17;         // rows visible before the sheet scrolls
+const TYPE_FS = 26, TYPE_LH = 38, TYPE_X = 84, TYPE_Y0 = 252;
+const TYPE_FONT = `${TYPE_FS}px 'Courier Prime', 'Courier New', monospace`;
+const TYPE_FONT_I = `italic ${TYPE_FS - 2}px 'Courier Prime', 'Courier New', monospace`;
+const INK_PER_KEY = 0.0042;  // about 240 keys before the ribbon is spent
+const INK_PER_MIN = 0.004;   // the ribbon also dries out with time
+const PITCH = SHEET_W * (15.6 / CANVAS_W);   // one character, in world units
+const LAMP_DESK_AIM = new THREE.Vector3(0.55, 0, 0.2);
+const LAMP_TYPE_AIM = new THREE.Vector3(-0.8, 0.2, -0.2);
+
+const SHEET = {
+  rows: [],          // { cells: [{c, struck, void, j, sys}], sys: bool, belled: bool }
+  mode: 'off',       // off | feed | answer | summary
+  qid: null,
+  answerStart: 0,
+  note: null,        // { text, until }
+  returned: 0,
+  filedStamp: null,
+};
+
+const FEED_OPEN_ORDER = ['F1', 'F2', 'F3', 'F4', 'F5'];
+const questionNumber = id => FEED_OPEN_ORDER.indexOf(id) + 1;
+
+function factIsOpen(id) {
+  if (STATE.facts[id]) return false;
+  if (id === 'F1' || id === 'F2') return true;
+  if (id === 'F3') return !!STATE.examined.photo;
+  if (id === 'F4') return !!STATE.examined.signal_log;
+  if (id === 'F5') return isUnlocked('R2');
+  return false;
+}
+const filedCount = () => FEED_OPEN_ORDER.filter(id => STATE.facts[id]).length;
+const summaryOpen = () => filedCount() >= SUMMARY_MIN_FACTS;
+
+function newTypedRow() { return { cells: [], sys: false, belled: false }; }
+
+// Printed prompt lines (not typed by the player). They wrap to COLS.
+function sysAdd(lines, italic = true) {
+  for (const raw of lines) {
+    if (raw === '') { SHEET.rows.push({ cells: [], sys: true, belled: true }); continue; }
+    const words = raw.split(' ');
+    let row = { cells: [], sys: true, belled: true };
+    for (const w of words) {
+      const add = (row.cells.length ? 1 : 0) + w.length;
+      if (row.cells.length + add > COLS) { SHEET.rows.push(row); row = { cells: [], sys: true, belled: true }; }
+      if (row.cells.length) row.cells.push({ c: ' ', struck: false, void: false, j: 0, sys: true, italic });
+      for (const ch of w) row.cells.push({ c: ch, struck: false, void: false, j: 0, sys: true, italic });
+    }
+    SHEET.rows.push(row);
+  }
+}
+
+function setPrompt(lines, mode, qid = null) {
+  SHEET.rows = [];
+  sysAdd(lines);
+  SHEET.rows.push(newTypedRow());
+  SHEET.answerStart = SHEET.rows.length - 1;
+  SHEET.mode = mode;
+  SHEET.qid = qid;
+  renderTypeSheet();
+  TYPE.tex.needsUpdate = true;
+}
+
+function feedPrompt() {
+  const lines = ['OPEN QUESTIONS', ''];
+  FEED_OPEN_ORDER.forEach(id => {
+    if (STATE.facts[id]) lines.push(`  ${questionNumber(id)}  ${FACTS[id].q}  [filed]`);
+    else if (factIsOpen(id)) lines.push(`  ${questionNumber(id)}  ${FACTS[id].q}`);
+  });
+  if (summaryOpen() && !STATE.summaryDone) lines.push('  6  Case summary, from memory.');
+  lines.push('', 'Type the number of the question, then return.');
+  setPrompt(lines, 'feed');
+}
+
+function answerPrompt(id) {
+  const f = FACTS[id];
+  setPrompt([`Q${questionNumber(id)}. ${f.q}`, '', 'ANSWER:'], 'answer', id);
+}
+
+function summaryPrompt() {
+  setPrompt([
+    'CASE SUMMARY, FROM MEMORY.',
+    '',
+    'Write what you know, in your own words. Return begins a new line.',
+    'Ctrl + Return files the report.',
+  ], 'summary', SUMMARY_KEY);
+}
+
+// Cursor: the last typed row, creating one when the last row is printed.
+function cursorRow() {
+  let r = SHEET.rows[SHEET.rows.length - 1];
+  if (!r || r.sys) { r = newTypedRow(); SHEET.rows.push(r); }
+  return r;
+}
+
+// Strike-out: four x's in a row mark the word before them as struck.
+// The x's and the struck word are excluded from the answer.
+function strikeCheck(row) {
+  const cells = row.cells;
+  let i = cells.length - 1, run = 0;
+  while (i >= 0 && cells[i].c === 'x' && !cells[i].sys) { run++; i--; }
+  if (run < 4) return;
+  for (let k = cells.length - 1; k > i; k--) cells[k].void = true;   // the x's themselves
+  while (i >= 0 && cells[i].c !== ' ' && !cells[i].sys) { cells[i].struck = true; i--; }
+}
+
+function sheetNewRow() {
+  SHEET.rows.push(newTypedRow());
+  carriageTo(-0.3, 0.16);
+  SFX.ret();
+}
+
+function typeChar(ch) {
+  if (STATE.ink <= 0.001) {
+    SFX.clunk();
+    flashNote('The ribbon is spent. Replace it from the drawer.');
+    return;
+  }
+  STATE.ink = Math.max(0, STATE.ink - INK_PER_KEY);
+  let row = cursorRow();
+  if (row.cells.length >= COLS) { sheetNewRow(); row = cursorRow(); }
+  row.cells.push({ c: ch, struck: false, void: false, j: Math.random(), sys: false });
+  strikeCheck(row);
+  if (row.cells.length === BELL_COL && !row.belled) { row.belled = true; SFX.bell(); }
+  keyPress(ch);
+  typebarStrike();
+  SFX.key();
+  carriageTo(-0.3 + row.cells.length * PITCH);
+  renderTypeSheet();
+  TYPE.tex.needsUpdate = true;
+  updateInkHud();
+}
+
+function backspacePressed() {
+  SFX.clunk();
+  flashNote('No backspace. Strike it out with xxxx.');
+}
+
+// The text the player has typed on the answer lines, without struck or void cells.
+function sheetAnswerText() {
+  const out = [];
+  for (let i = SHEET.answerStart; i < SHEET.rows.length; i++) {
+    const r = SHEET.rows[i];
+    if (r.sys) continue;
+    out.push(r.cells.filter(c => !c.struck && !c.void && !c.sys).map(c => c.c).join(''));
+  }
+  return out.join('\n').replace(/[ \t]+$/gm, '').trim();
+}
+
+function typedFeedText() {
+  const r = SHEET.rows[SHEET.rows.length - 1];
+  return r && !r.sys ? r.cells.filter(c => !c.void).map(c => c.c).join('').trim() : '';
+}
+
+/* ---- Rendering the sheet ---- */
+function renderTypeSheet() {
+  const c = TYPE.canvas, ctx = c.getContext('2d');
+  const W = c.width, H = c.height;
+  paperBackground(ctx, W, H, '#cbc4ab');
+  ctx.textBaseline = 'alphabetic';
+  // printed letterhead, the same on every report
+  ctx.font = `bold 22px 'Courier Prime', 'Courier New', monospace`;
+  ctx.fillStyle = 'rgba(33,29,23,0.9)';
+  ctx.fillText('HOLLIN FORD CONSTABULARY · ARCHIVE RECORDS', TYPE_X, 110);
+  ctx.font = `18px 'Courier Prime', 'Courier New', monospace`;
+  ctx.fillStyle = 'rgba(33,29,23,0.7)';
+  ctx.fillText('Form ARC-7 · Report of Findings · Case 68/11/0417', TYPE_X, 140);
+  ctx.fillStyle = 'rgba(33,29,23,0.45)';
+  ctx.fillRect(TYPE_X, 160, W - TYPE_X * 2, 2);
+
+  const ink = STATE.ink;
+  const visible = SHEET.rows.slice(-MAX_ROWS);
+  visible.forEach((row, ri) => {
+    const y = TYPE_Y0 + ri * TYPE_LH;
+    row.cells.forEach((cell, ci) => {
+      const x = TYPE_X + ci * 15.6;
+      if (cell.sys) {
+        ctx.font = cell.italic ? TYPE_FONT_I : TYPE_FONT;
+        ctx.fillStyle = 'rgba(55,46,34,0.82)';
+        ctx.fillText(cell.c, x, y);
+        return;
+      }
+      // Ribbon fade: as ink drops, more characters fail to strike
+      if (cell.j > 0.12 + ink * 0.88) return;
+      ctx.font = TYPE_FONT;
+      const a = (0.38 + 0.62 * ink) * (0.86 + 0.14 * cell.j);
+      ctx.fillStyle = `rgba(22,18,14,${a.toFixed(3)})`;
+      ctx.fillText(cell.c, x, y);
+      if (cell.struck || cell.void) {
+        ctx.fillRect(x - 1, y - TYPE_FS * 0.32, 16, 2.2);
+      }
+    });
+  });
+
+  if (SHEET.filedStamp) stampMark(ctx, SHEET.filedStamp, W - 160, 214, -0.1, 'rgba(122,46,38,0.72)', 46);
+  if (SHEET.note && SHEET.note.text) {
+    ctx.font = `30px 'Caveat', cursive`;
+    ctx.fillStyle = 'rgba(45,58,76,0.95)';
+    const rows = wrapPlain(ctx, SHEET.note.text, W - TYPE_X * 2 - 20);
+    rows.forEach((line, i) => ctx.fillText(line, TYPE_X, H - 130 + i * 34));
+  }
+}
+
+function wrapPlain(ctx, text, maxW) {
+  const words = text.split(' ');
+  const rows = [];
+  let line = '';
+  for (const w of words) {
+    const t = line ? line + ' ' + w : w;
+    if (ctx.measureText(t).width > maxW && line) { rows.push(line); line = w; } else line = t;
+  }
+  if (line) rows.push(line);
+  return rows;
+}
+
+function flashNote(text, ms = 3200) {
+  const el = document.getElementById('note');
+  el.textContent = text;
+  el.classList.add('on');
+  clearTimeout(flashNote.t);
+  flashNote.t = setTimeout(() => el.classList.remove('on'), ms);
+}
+
+function updateInkHud() {
+  const el = document.getElementById('hudInk');
+  if (STATE.mode !== 'type' && STATE.mode !== 'desk') { el.classList.add('hidden'); return; }
+  el.classList.remove('hidden');
+  el.textContent = `ribbon ${Math.round(STATE.ink * 100)}% · spares ${STATE.spares}`;
+}
+
+/* ---- Answer handling ---- */
+function submitLine() {
+  if (SHEET.mode === 'feed') return submitFeed();
+  if (SHEET.mode === 'answer') return submitAnswer();
+  if (SHEET.mode === 'summary') return sheetNewRow();
+}
+
+function submitFeed() {
+  const v = typedFeedText();
+  SFX.ret();
+  const n = parseInt(v, 10);
+  if (v === '6' && summaryOpen() && !STATE.summaryDone) return summaryPrompt();
+  const id = FEED_OPEN_ORDER[n - 1];
+  if (!id || v.length !== 1) { flashNote('Not a question on this sheet.'); return feedPrompt(); }
+  if (STATE.facts[id]) { flashNote('Already filed.'); return feedPrompt(); }
+  if (!factIsOpen(id)) { flashNote('That question is not open yet.'); return feedPrompt(); }
+  answerPrompt(id);
+}
+
+function submitAnswer() {
+  const id = SHEET.qid;
+  const text = sheetAnswerText();
+  if (!text) { SFX.clunk(); flashNote('Nothing on the answer line yet.'); return; }
+  const fact = FACTS[id];
+  SHEET.rows.push(newTypedRow());
+  SFX.ret();
+  carriageTo(-0.3, 0.2);
+  if (fact.check(text)) fileFact(id);
+  else returnReport(id);
+}
+
+function fileFact(id) {
+  STATE.facts[id] = true;
+  SHEET.mode = 'filed';
+  SHEET.filedStamp = 'FILED';
+  SFX.stamp();
+  renderTypeSheet(); TYPE.tex.needsUpdate = true;
+  checkUnlocks();
+  addPinForFact(id);
+  wait(2.4, () => {
+    const snap = snapshotSheet('filed-' + id);
+    ejectSheet(() => {
+      placeDynamicSheet(snap, `filed-${id}`, `Filed: ${FACTS[id].label}`, [FACTS[id].value]);
+      flashNote(`Filed: ${FACTS[id].label.toLowerCase()}. ${FACTS[id].value}.`, 4200);
+      if (summaryOpen() && !STATE.summaryDone && !STATE.summaryNoticed) {
+        STATE.summaryNoticed = true;
+        wait(4.6, () => flashNote('Four findings are filed. The sixth question is open.', 4200));
+      }
+    });
+  });
+}
+
+function returnReport(id) {
+  SHEET.mode = 'returned';
+  SHEET.note = { text: FACTS[id].wrong[Math.floor(Math.random() * FACTS[id].wrong.length)] || WRONG_FALLBACK[0] };
+  SFX.clunk();
+  renderTypeSheet(); TYPE.tex.needsUpdate = true;
+  wait(2.6, () => {
+    const snap = snapshotSheet('ret-' + (++SHEET.returned));
+    const noteText = SHEET.note ? SHEET.note.text : '';
+    ejectSheet(() => {
+      placeDynamicSheet(snap, `ret-${SHEET.returned}`, 'Returned report', [noteText]);
+      flashNote('Returned. There is a note in the margin.', 3800);
+    });
+  });
+}
+
+function snapshotSheet(tag) {
+  const c = makeCanvas();
+  c.getContext('2d').drawImage(TYPE.canvas, 0, 0);
+  return c;
+}
+
+// Finished summary: the ending is decided by what was filed and what was written.
+function submitSummary() {
+  const text = sheetAnswerText();
+  STATE.summaryDone = true;
+  STATE.summaryText = text;
+  SFX.stamp();
+  const snap = snapshotSheet('summary');
+  ejectSheet(() => {
+    placeDynamicSheet(snap, 'summary', 'Summary, from memory', [text.split('\n')[0] || '']);
+    wait(1.2, () => startEnding(endingFor(text)));
+  });
+}
+
+function endingFor(text) {
+  const t = text.toLowerCase();
+  const namesPell = /(pell|\bt\.\s?p\b)/.test(t);
+  if (namesPell && STATE.facts.F5) return 'pell';
+  if (namesPell) return 'open';
+  if (/\b(left|ran away|escaped|chose|went away|walked out|own accord|on her own|gone)\b/.test(t)) return 'left';
+  if (/\b(dead|killed|murder|drown|drowned|body|river|died|death)\b/.test(t)) return 'harm';
+  return 'open';
+}
+
+/* ---- Entering and leaving the typewriter ---- */
+function enterType() {
+  if (STATE.mode !== 'desk' || busy()) return;
+  setMode('type');
+  flashNote('Type the number of a question. Four x’s strike out a word. There is no backspace.', 5200);
+  moveCamera(TYPE_CAM.p, TYPE_CAM.l, 2.0, () => {});
+  // The lamp swings across to the typewriter while a sheet is in it
+  tween({ dur: 1.4, tag: 'lamp', ease: easeInOut, onUpdate: k => { lampSpot.target.position.lerpVectors(LAMP_DESK_AIM, LAMP_TYPE_AIM, k); } });
+  TYPE.mesh.visible = true;
+  TYPE.mesh.position.set(TW.x, 3.2, TYPE_SHEET_Z);
+  tween({ dur: 1.5, tag: 'typesheet', ease: easeOut, onUpdate: k => {
+    TYPE.mesh.position.y = lerp(3.2, 1.04, k);
+  }, onDone: () => { SFX.rustle(0.7); feedPrompt(); } });
+  SFX.rustle(0.8);
+  updateInkHud();
+}
+
+function ejectSheet(after) {
+  tween({ dur: 1.4, tag: 'lamp', ease: easeInOut, onUpdate: k => { lampSpot.target.position.lerpVectors(LAMP_TYPE_AIM, LAMP_DESK_AIM, k); } });
+  SHEET.mode = 'off';
+  SHEET.note = null;
+  SHEET.filedStamp = null;
+  SFX.rustle(0.9);
+  tween({ dur: 1.3, tag: 'typesheet', ease: easeIn, onUpdate: k => {
+    TYPE.mesh.position.y = lerp(1.04, 3.2, k);
+  }, onDone: () => {
+    TYPE.mesh.visible = false;
+    TYPE.mesh.position.y = 3.2;
+    SHEET.rows = [];
+    if (after) after();
+  } });
+  if (STATE.mode === 'type') {
+    setMode('desk');
+    moveCamera(CAM_HOME.p, CAM_HOME.l, 2.2, () => {});
+  }
+  updateInkHud();
+}
+
+// The typed sheet is a fresh canvas for every new report.
+function resetTypeSheetCanvas() {
+  renderTypeSheet();
+  TYPE.tex.needsUpdate = true;
+}
+
+/* ---- Ribbon: spares sit in the drawer ---- */
+function replaceRibbon() {
+  if (STATE.spares <= 0) { SFX.clunk(); flashNote('No spare ribbon in the drawer.'); return; }
+  STATE.spares--;
+  STATE.ink = 1.0;
+  SFX.drawer();
+  flashNote('Ribbon replaced. Two spares, then none.', 3200);
+  updateInkHud();
+}
+
+// Ribbon also dries out with time, so the typist cannot wait forever.
+setInterval(() => {
+  if (STATE.ended) return;
+  STATE.ink = Math.max(0, STATE.ink - INK_PER_MIN);
+  if (STATE.mode === 'type' || STATE.mode === 'desk') updateInkHud();
+}, 60000);
+/* ------------------------------------------------------------------ *
+ *  DIORAMAS: small clay reconstructions of the scenes on the paper.
+ *  Each one assembles piece by piece out of the fog, lit by a single
+ *  practical source. The desk is hidden while one is on.
+ * ------------------------------------------------------------------ */
+const DIO = { container: group(scene), root: null, kind: null, variant: null };
+DIO.container.visible = false;
+
+const dioMats = {
+  road: '#2a2d2e', pave: '#4a4d49', plinth: '#26292b',
+  wallA: '#6e6a5e', wallB: '#5d6470', wallC: '#6b6053', roofM: '#2e2f2d',
+  door: '#1f1d1a', coat: '#2b2c2a', case: '#5e4330', rail: '#6e6b63', ballast: '#3a3833',
+  platform: '#5b5850', track: '#23221f', building: '#5e5b52', buildingRoof: '#2f302d',
+  signalBox: '#4f514c', hut: '#5b605c', hutRoof: '#2a2d2b', board: '#c4bda4', pole: '#3c3d3a',
+};
+
+function dioBase(root) {
+  boxM(3.4, 0.1, 2.6, clay(dioMats.plinth), root, 0, -0.05, 0);
+}
+
+/* ---- Sallow Lane, 9 p.m. ---- */
+function buildSallow(root, variant) {
+  dioBase(root);
+  boxM(1.0, 0.02, 2.6, clay(dioMats.road), root, -0.45, 0.0, 0);            // road
+  boxM(0.36, 0.05, 2.6, clay(dioMats.pave), root, 0.23, 0.02, 0);           // pavement
+  boxM(0.36, 0.05, 2.6, clay(dioMats.pave), root, -1.24, 0.02, 0);          // left pavement
+  const litWin = glow('#d9a35e', variant === 'empty' ? 0.95 : 0.12);
+  const dimWin = glow('#5a5447', 0.08);
+  const corranLit = glow('#d9a35e', variant === 'figure' ? 1.0 : 0.1);
+  // Right-hand terrace: the Marrow house is the middle one
+  [[0.95, -0.8, clay(dioMats.wallA)], [0.95, 0.0, clay(dioMats.wallB)], [0.95, 0.8, clay(dioMats.wallC)]].forEach(([x, z, m], i) => {
+    boxM(0.5, 0.62, 0.74, m, root, x, 0.31, z);
+    boxM(0.56, 0.06, 0.8, clay(dioMats.roofM), root, x, 0.65, z);
+    boxM(0.02, 0.14, 0.16, i === 1 ? clay(dioMats.door) : dimWin, root, x - 0.26, 0.2, z);       // door
+    boxM(0.02, 0.16, 0.16, i === 1 && variant === 'empty' ? litWin : dimWin, root, x - 0.26, 0.45, z); // upstairs
+    boxM(0.02, 0.16, 0.14, i === 1 && variant === 'empty' ? litWin : dimWin, root, x - 0.26, 0.45, z + 0.22);
+  });
+  // Left-hand side: Mrs Corran's house, directly opposite
+  boxM(0.5, 0.62, 0.74, clay(dioMats.wallB), root, -1.4, 0.31, 0.0);
+  boxM(0.56, 0.06, 0.8, clay(dioMats.roofM), root, -1.4, 0.65, 0.0);
+  boxM(0.02, 0.16, 0.16, variant === 'figure' ? corranLit : dimWin, root, -1.14, 0.42, 0.0);   // her front window
+  boxM(0.02, 0.14, 0.14, clay(dioMats.door), root, -1.14, 0.2, -0.2);
+  // Street lamp: the single practical source in the empty account; out in Mrs Corran's
+  const lampOn = variant === 'empty';
+  boxM(0.04, 1.1, 0.04, clay(dioMats.pole), root, 0.2, 0.57, -0.72);
+  sphM(0.07, glow('#ffb36b', lampOn ? 1.8 : 0.05), root, 0.2, 1.14, -0.72);
+  // A figure, when there is one: Anne walking toward the station with her case
+  if (variant === 'figure') {
+    capM(0.045, 0.14, clay(dioMats.coat), root, -0.12, 0.18, 0.3);
+    boxM(0.08, 0.05, 0.04, clay(dioMats.case), root, -0.02, 0.1, 0.3);
+  }
+  root.userData.lights = [];
+  if (lampOn) {
+    const L = new THREE.PointLight('#ffb36b', 0.9, 3.2, 2);
+    L.position.set(0.2, 1.1, -0.66); L.castShadow = false;
+    root.add(L); root.userData.lights.push({ light: L, target: 0.9 });
+  } else {
+    const L = new THREE.PointLight('#ffb36b', 1.2, 3.2, 2);
+    L.position.set(-1.1, 0.45, 0.0); L.castShadow = false;
+    root.add(L); root.userData.lights.push({ light: L, target: 1.2 });
+  }
+}
+
+/* ---- Hollin Ford station yard, the platform with no train ---- */
+function buildStation(root) {
+  dioBase(root);
+  boxM(2.7, 0.02, 0.22, clay(dioMats.ballast), root, 0, 0.0, -0.12);     // track bed
+  boxM(2.7, 0.03, 0.2, clay(dioMats.track), root, 0, 0.015, -0.12);
+  boxM(2.7, 0.012, 0.02, clay(dioMats.rail), root, 0, 0.04, -0.2);         // rails
+  boxM(2.7, 0.012, 0.02, clay(dioMats.rail), root, 0, 0.04, -0.05);
+  boxM(2.7, 0.12, 0.46, clay(dioMats.platform), root, 0.0, 0.06, 0.36);    // platform
+  boxM(2.7, 0.01, 0.04, clay('#77736a'), root, 0.0, 0.125, 0.12);          // yellow-edge line, on the edge
+  // station building on the far side, with a lit window: the only other light, unused
+  boxM(0.95, 0.5, 0.42, clay(dioMats.building), root, 1.1, 0.25, -0.66);
+  boxM(1.04, 0.06, 0.5, clay(dioMats.buildingRoof), root, 1.1, 0.53, -0.66);
+  boxM(0.02, 0.2, 0.16, glow('#caa066', 0.14), root, 0.66, 0.3, -0.66);
+  // timetable board on the building
+  boxM(0.26, 0.2, 0.03, clay(dioMats.board), root, 1.1, 0.3, -0.42);
+  // signal at danger, lamp red
+  boxM(0.03, 0.9, 0.03, clay(dioMats.pole), root, -1.05, 0.45, -0.42);
+  boxM(0.36, 0.03, 0.03, clay(dioMats.pole), root, -0.88, 0.9, -0.42);
+  sphM(0.03, glow('#8c2c26', 1.1), root, -0.7, 0.9, -0.42);
+  // far signal box, dim window
+  boxM(0.4, 0.45, 0.36, clay(dioMats.signalBox), root, -1.45, 0.29, -0.9);
+  boxM(0.34, 0.14, 0.02, glow('#caa066', 0.22), root, -1.45, 0.36, -0.72);
+  // lamp post on the platform, the practical
+  boxM(0.04, 1.2, 0.04, clay(dioMats.pole), root, 0.25, 0.72, 0.7);
+  sphM(0.06, glow('#ffb36b', 1.9), root, 0.25, 1.34, 0.7);
+  // Anne, at the platform edge, with the case; and the figure at the box, further off
+  capM(0.042, 0.14, clay(dioMats.coat), root, 0.02, 0.26, 0.26);
+  boxM(0.08, 0.05, 0.04, clay(dioMats.case), root, 0.1, 0.13, 0.26);
+  capM(0.042, 0.13, clay('#25262a'), root, -1.0, 0.24, -0.62);
+  root.userData.lights = [];
+  const L = new THREE.PointLight('#ffb36b', 0.95, 3.0, 2);
+  L.position.set(0.25, 1.3, 0.7);
+  root.add(L); root.userData.lights.push({ light: L, target: 0.95 });
+}
+
+/* ---- Cutter's Junction signal box, the day book's room ---- */
+function buildSignalbox(root) {
+  dioBase(root);
+  // the box itself, on a low brick plinth
+  boxM(1.0, 0.7, 0.8, clay(dioMats.hut), root, 0, 0.35, 0);
+  boxM(1.12, 0.06, 0.92, clay(dioMats.hutRoof), root, 0, 0.73, 0);
+  boxM(0.92, 0.3, 0.02, glow('#e2a35c', 0.85), root, 0, 0.5, 0.41);          // the lit operating window
+  for (let i = 0; i < 4; i++) boxM(0.02, 0.3, 0.02, clay(dioMats.hutRoof), root, -0.36 + i * 0.24, 0.5, 0.42);
+  // lever frame in front of the box
+  for (let i = 0; i < 6; i++) {
+    const lv = group(root, -0.36 + i * 0.14, 0.12, 0.7);
+    boxM(0.025, 0.28, 0.025, clay('#7a7568'), lv, 0, 0.12, 0, i % 2 ? 0.45 : -0.4, 0, 0);
+    cylM(0.03, 0.03, 0.04, 12, clay('#3e3c36'), lv, 0, 0.0, 0);
+  }
+  // the line, with sleepers
+  boxM(2.8, 0.02, 0.6, clay(dioMats.ballast), root, 0, -0.005, 1.15);
+  boxM(2.8, 0.012, 0.02, clay(dioMats.rail), root, 0, 0.02, 1.1);
+  boxM(2.8, 0.012, 0.02, clay(dioMats.rail), root, 0, 0.02, 1.2);
+  for (let i = 0; i < 11; i++) boxM(0.05, 0.02, 0.22, clay('#4a3f31'), root, -1.25 + i * 0.25, 0.0, 1.15);
+  // signal post, lamp at danger
+  boxM(0.03, 0.9, 0.03, clay(dioMats.pole), root, -0.95, 0.45, 0.98);
+  boxM(0.34, 0.03, 0.03, clay(dioMats.pole), root, -0.79, 0.9, 0.98);
+  sphM(0.03, glow('#8c2c26', 1.1), root, -0.62, 0.9, 0.98);
+  // a figure at the door of the box
+  capM(0.042, 0.13, clay(dioMats.coat), root, 0.62, 0.24, 0.62);
+  root.userData.lights = [];
+  const L = new THREE.PointLight('#ffb36b', 0.9, 2.6, 2);
+  L.position.set(0.0, 0.5, 0.2);
+  root.add(L); root.userData.lights.push({ light: L, target: 0.9 });
+}
+
+/* ---- Build, assemble, and tear down ---- */
+function buildDiorama(kind, variant) {
+  clearDiorama();
+  const root = group(DIO.container);
+  if (kind === 'sallow') buildSallow(root, variant);
+  else if (kind === 'station') buildStation(root);
+  else if (kind === 'signalbox') buildSignalbox(root);
+  DIO.root = root; DIO.kind = kind; DIO.variant = variant;
+  // Lights start dark and come up after the pieces have landed
+  (root.userData.lights || []).forEach(({ light }) => { light.intensity = 0; });
+  return root;
+}
+
+function clearDiorama() {
+  if (!DIO.root) return;
+  DIO.container.remove(DIO.root);
+  DIO.root.traverse(o => { if (o.geometry) o.geometry.dispose(); });
+  DIO.root = null; DIO.kind = null; DIO.variant = null;
+}
+
+// Each top-level piece starts high and small in the fog, then settles into place.
+function assembleDiorama(root) {
+  const small = new THREE.Vector3(0.001, 0.001, 0.001);
+  const kids = root.children.filter(c => !c.isLight);
+  kids.forEach((ch, i) => {
+    const target = ch.position.clone();
+    const tScale = ch.scale.clone();
+    const start = target.clone().add(new THREE.Vector3(rr(-1.4, 1.4), rr(1.6, 3.2), rr(-1.2, 1.2)));
+    ch.position.copy(start);
+    ch.scale.copy(small);
+    tween({
+      dur: 1.9 + rr(0, 0.6),
+      delay: 0.25 + i * 0.09 + rr(0, 0.25),
+      ease: easeOut,
+      onUpdate: k => {
+        ch.position.lerpVectors(start, target, k);
+        ch.scale.lerpVectors(small, tScale, k);
+      },
+    });
+  });
+  // Lights come up last, once the scene has taken its shape
+  const late = 0.25 + kids.length * 0.09 + 0.6;
+  (root.userData.lights || []).forEach(({ light, target }) => {
+    tween({ dur: 2.2, delay: late, ease: easeInOut, onUpdate: k => { light.intensity = target * k; } });
+  });
+  // Ambient drone during the reconstruction
+  droneStart();
+}
+
+// Start a reconstruction for a sheet. The desk falls away behind it.
+function beginDiorama(kind, variant) {
+  buildDiorama(kind, variant);
+  DIO.container.visible = true;
+  assembleDiorama(DIO.root);
+}
+/* ------------------------------------------------------------------ *
+ *  CORKBOARD: pinned papers, filed facts with red thread, and pairs
+ *  that reveal what the paper was hiding.
+ * ------------------------------------------------------------------ */
+const BOARD = {
+  el: document.getElementById('board'),
+  cards: document.getElementById('cards'),
+  svg: document.getElementById('threads'),
+  hint: document.getElementById('boardHint'),
+  map: new Map(),       // ref -> { el, ref }
+  sel: null,            // selected ref, waiting for its partner
+  links: [],            // { a, b } pairs the player has laid down
+  temp: [],             // briefly drawn non-matching threads
+  open: false,
+};
+const SVGNS = 'http://www.w3.org/2000/svg';
+
+const refDoc = ref => (ref && ref.startsWith('doc:') ? ref.slice(4) : null);
+
+function cardHTML(ref) {
+  if (ref.startsWith('fact:')) {
+    const f = FACTS[ref.slice(5)];
+    return `<span class="pin"></span><h4>Filed · ${f.label}</h4><div class="val">${f.value}</div><span class="stamp">FILED</span>`;
+  }
+  if (ref.startsWith('ret:')) {
+    const note = (STATE.returnedNotes || {})[ref] || '';
+    return `<span class="pin"></span><h4>Returned report</h4><div class="hand">${note}</div>`;
+  }
+  const id = refDoc(ref);
+  const obj = DOCO[id];
+  const d = DOCS[id];
+  if (!obj || !d) return '';
+  const lines = (d.lines || []).slice(0, 5).map(l => {
+    const head = l.startsWith('#');
+    const txt = sheetPlainText(head ? l.slice(1) : l);
+    const short = txt.length > 96 ? txt.slice(0, 94) + '…' : txt;
+    return `<div class="line">${head ? '<b>' + short + '</b>' : short || '&nbsp;'}</div>`;
+  }).join('');
+  const hands = PAIRS.filter(p => p.doc === id && STATE.reveals[p.key])
+    .map(p => `<div class="hand">— ${p.note}</div>`).join('');
+  return `<span class="pin"></span><h4>${obj.title}</h4>${lines}${hands}`;
+}
+
+function boardAdd(ref) {
+  if (BOARD.map.has(ref)) return false;
+  const el = document.createElement('div');
+  el.className = 'card' + (ref.startsWith('fact:') ? ' fact' : '');
+  el.dataset.ref = ref;
+  el.innerHTML = cardHTML(ref);
+  el.addEventListener('click', e => { e.stopPropagation(); boardClick(ref); });
+  BOARD.cards.appendChild(el);
+  BOARD.map.set(ref, { el, ref });
+  if (ref.startsWith('doc:') && !STATE.boardPins.includes(ref)) STATE.boardPins.push(ref);
+  if (ref.startsWith('fact:') && !STATE.boardPins.includes(ref)) STATE.boardPins.push(ref);
+  boardLayout();
+  return true;
+}
+
+function boardRefresh() {
+  for (const { el, ref } of BOARD.map.values()) el.innerHTML = cardHTML(ref);
+  boardLayout();
+}
+
+// Cards sit on a loose grid with a little jitter, so the board looks pinned by hand.
+function boardLayout() {
+  const w = window.innerWidth;
+  const cols = Math.max(2, Math.floor((w - 80) / 270));
+  let i = 0;
+  for (const { el, ref } of BOARD.map.values()) {
+    const col = i % cols, row = Math.floor(i / cols);
+    const j = hash01(ref, 31);
+    const x = 56 + col * 262 + (j - 0.5) * 16;
+    const y = 96 + row * 262 + (hash01(ref, 37) - 0.5) * 14;
+    el.style.left = x + 'px';
+    el.style.top = y + 'px';
+    el.style.transform = `rotate(${((hash01(ref, 41) - 0.5) * 2.4).toFixed(2)}deg)`;
+    i++;
+  }
+  boardThreads();
+}
+
+function cardCenter(ref) {
+  const c = BOARD.map.get(ref);
+  if (!c) return null;
+  return { x: c.el.offsetLeft + c.el.offsetWidth / 2, y: c.el.offsetTop + 14 };
+}
+
+function threadPath(p, q, color, width, extra = '') {
+  const mx = (p.x + q.x) / 2, my = (p.y + q.y) / 2;
+  const sag = 18 + Math.abs(p.x - q.x) * 0.04;
+  const d = `M${p.x} ${p.y} Q${mx} ${my + sag} ${q.x} ${q.y}`;
+  return `<path d="${d}" stroke="${color}" stroke-width="${width}" fill="none" stroke-linecap="round" ${extra}/>`;
+}
+
+// Red thread: every filed fact to its sources, and every pair the player laid.
+function boardThreads() {
+  BOARD.svg.setAttribute('viewBox', `0 0 ${window.innerWidth} ${window.innerHeight}`);
+  let out = '';
+  for (const id of FACT_ORDER) {
+    if (!STATE.facts[id]) continue;
+    const fc = cardCenter('fact:' + id);
+    if (!fc) continue;
+    for (const src of FACTS[id].sources) {
+      const sc = cardCenter('doc:' + src);
+      if (sc) out += threadPath(fc, sc, '#8c2c26', 2.4, 'opacity="0.85"');
+    }
+  }
+  for (const { a, b } of BOARD.links) {
+    const p = cardCenter(a), q = cardCenter(b);
+    if (p && q) out += threadPath(p, q, '#8c2c26', 2.4, 'opacity="0.9"');
+  }
+  for (const t of BOARD.temp) {
+    const p = cardCenter(t.a), q = cardCenter(t.b);
+    if (p && q) out += threadPath(p, q, '#8c2c26', 1.6, 'opacity="0.45" stroke-dasharray="5 6"');
+  }
+  BOARD.svg.innerHTML = out;
+}
+
+function pairFor(a, b) {
+  const da = refDoc(a), db = refDoc(b);
+  if (!da || !db) return null;
+  return PAIRS.find(p => (p.a === da && p.b === db) || (p.a === db && p.b === da)) || null;
+}
+
+function boardClick(ref) {
+  if (!BOARD.open) return;
+  if (BOARD.sel === null) {
+    BOARD.sel = ref;
+    BOARD.map.get(ref).el.classList.add('sel');
+    BOARD.hint.textContent = 'Now click the paper it belongs with.';
+    return;
+  }
+  const first = BOARD.sel;
+  BOARD.map.get(first).el.classList.remove('sel');
+  BOARD.sel = null;
+  if (first === ref) { BOARD.hint.textContent = ''; return; }
+  const pair = pairFor(first, ref);
+  if (pair && !STATE.reveals[pair.key]) {
+    STATE.reveals[pair.key] = true;
+    BOARD.links.push({ a: first, b: ref });
+    SFX.thread();
+    refreshDoc(pair.doc);
+    boardRefresh();
+    BOARD.hint.textContent = pair.msg;
+    onRevealed(pair);
+  } else if (pair) {
+    BOARD.hint.textContent = 'Those two have already told us what they have to say.';
+    BOARD.temp.push({ a: first, b: ref });
+    boardThreads();
+    wait(1.1, () => { BOARD.temp = []; boardThreads(); });
+  } else {
+    BOARD.hint.textContent = 'No connection between those two.';
+    BOARD.temp.push({ a: first, b: ref });
+    boardThreads();
+    wait(1.1, () => { BOARD.temp = []; boardThreads(); });
+  }
+}
+
+// Filed facts pin themselves to the board with their sources.
+function addPinForFact(id) {
+  const f = FACTS[id];
+  for (const src of f.sources) if (DOCO[src]) boardAdd('doc:' + src);
+  boardAdd('fact:' + id);
+  boardThreads();
+}
+
+// Pinning a held paper puts it on the board so it can be paired.
+function pinHeld(id) {
+  if (!DOCO[id]) return;
+  if (boardAdd('doc:' + id)) {
+    SFX.thread();
+    flashNote('Pinned to the corkboard.');
+  } else {
+    flashNote('Already on the corkboard.');
+  }
+}
+
+function openBoard() {
+  BOARD.open = true;
+  BOARD.el.classList.remove('hidden');
+  BOARD.hint.textContent = 'Click two papers to lay a thread between them. Esc to step back.';
+  boardLayout();
+  void BOARD.el.offsetWidth;            // commit the un-hidden state so the fade runs
+  BOARD.el.classList.remove('off');
+}
+
+function closeBoard() {
+  BOARD.open = false;
+  BOARD.sel = null;
+  for (const { el } of BOARD.map.values()) el.classList.remove('sel');
+  BOARD.el.classList.add('off');
+  setTimeout(() => { if (!BOARD.open) BOARD.el.classList.add('hidden'); }, 1300);
+}
+
+window.addEventListener('resize', () => { if (BOARD.open) boardLayout(); });
+/* ------------------------------------------------------------------ *
+ *  FLOW: modes, camera moves, picking, reading, unlocks, endings,
+ *  input, and the render loop.
+ * ------------------------------------------------------------------ */
+const CAM_HOME = { p: new THREE.Vector3(0, 2.4, 3.6), l: new THREE.Vector3(0, 0.15, 0) };
+const HOLD_CAM = { p: new THREE.Vector3(0, 1.42, 2.95), l: HOLD_POS.clone() };
+const READ_CAM = { p: new THREE.Vector3(0, 1.22, 2.72), l: HOLD_POS.clone() };
+const BOARD_CAM = { p: new THREE.Vector3(0.25, 1.5, 0.45), l: new THREE.Vector3(0.25, 1.5, -1.38) };
+const INTRO_CAM = { p: new THREE.Vector3(0, 2.9, 5.4), l: new THREE.Vector3(0, 0.6, 0) };
+
+const TRANS = { n: 0 };
+let camTw = null;
+const busy = () => TRANS.n > 0;
+
+function runT(dur, delay, onUpdate, onDone) {
+  TRANS.n++;
+  return tween({ dur, delay, onUpdate, onDone: () => { TRANS.n--; if (onDone) onDone(); } });
+}
+
+function moveCamera(p, l, dur = 2, after) {
+  if (camTw) { killTweens('cam'); TRANS.n--; camTw = null; }
+  const p0 = camBase.clone(), l0 = camLook.clone();
+  TRANS.n++;
+  camTw = tween({
+    dur, tag: 'cam', ease: easeInOut,
+    onUpdate: k => { camBase.lerpVectors(p0, p, k); camLook.lerpVectors(l0, l, k); },
+    onDone: () => { TRANS.n--; camTw = null; if (after) after(); },
+  });
+}
+
+const HINTS = {
+  intro: '',
+  desk: 'click a paper to pick it up<i class="sep">·</i>T typewriter<i class="sep">·</i>C corkboard<i class="sep">·</i>D drawer',
+  hold: 'drag to turn it<i class="sep">·</i>click or E to read<i class="sep">·</i>P pin to the corkboard<i class="sep">·</i>Esc put it down',
+  read: 'drag to turn it<i class="sep">·</i>R reconstruct the scene<i class="sep">·</i>Esc back',
+  recon: 'Esc put the paper back',
+  type: 'Enter files the line<i class="sep">·</i>xxxx strikes out a word<i class="sep">·</i>Esc pulls the sheet',
+  board: 'click two papers to lay a thread<i class="sep">·</i>Esc step back',
+  ending: '',
+};
+
+function setMode(m) {
+  STATE.mode = m;
+  document.getElementById('hudHint').innerHTML = HINTS[m] || '';
+  document.getElementById('hud').style.opacity = m === 'intro' || m === 'ending' ? 0 : 1;
+  updateInkHud();
+}
+
+function flatQuat(yaw) {
+  return new THREE.Quaternion().setFromEuler(new THREE.Euler(-Math.PI / 2, yaw, 0, 'YXZ'));
+}
+
+/* ---- Sheets on the desk ---- */
+function placeOnDesk(obj, drop) {
+  const d = obj.desk || obj.spot || { x: 0, z: 0, r: 0 };
+  obj.deskX = d.x; obj.deskZ = d.z; obj.deskYaw = d.r;
+  obj.deskY = 0.006 + (++STATE.layer) * 0.0035;
+  SHEETS.add(obj.group);
+  obj.group.quaternion.copy(flatQuat(d.r));
+  obj.group.position.set(d.x, obj.deskY + (drop ? 0.9 : 0), d.z);
+  obj.group.visible = true;
+  if (drop) {
+    SFX.rustle(0.45);
+    const y0 = obj.deskY + 0.9;
+    obj.moving = true;
+    runT(1.1, 0, k => { obj.group.position.y = lerp(y0, obj.deskY, easeOut(k)); }, () => { obj.moving = false; });
+  }
+}
+
+function placeDynamicSheet(canvas, id, title, snippet) {
+  const obj = createDynamicSheet(id, canvas, title, snippet);
+  obj.desk = { x: rr(0.12, 0.92), z: rr(-0.06, 0.42), r: rr(-0.25, 0.25) };
+  placeOnDesk(obj, true);
+  return obj;
+}
+
+// Papers come up from the basement as facts are filed.
+function docVisible(id) {
+  const d = DOCS[id];
+  if (d.start) return true;
+  return (d.unlock || []).some(k => STATE.facts[k]);
+}
+
+function checkUnlocks() {
+  let arrived = false;
+  for (const id of DOC_ORDER) {
+    if (DOCO[id] || !docVisible(id)) continue;
+    const obj = createDocSheet(id);
+    placeOnDesk(obj, true);
+    STATE.arrived[id] = true;
+    arrived = true;
+  }
+  if (arrived && STATE.mode !== 'intro') flashNote('A paper has come up from the basement.', 3600);
+  // Questions can open as papers are examined; announce the new ones once.
+  announceQuestions();
+}
+
+let lastOpen = '';
+function announceQuestions() {
+  const now = FEED_OPEN_ORDER.filter(id => factIsOpen(id)).join(',');
+  if (lastOpen && now !== lastOpen) {
+    const added = FEED_OPEN_ORDER.find(id => factIsOpen(id) && !lastOpen.split(',').includes(id));
+    if (added) wait(0.8, () => flashNote(`A question is open on the typewriter: ${FACTS[added].q}`, 4200));
+  }
+  lastOpen = now;
+}
+
+function onRevealed(pair) {
+  flashNote(pair.msg, 4800);
+  announceQuestions();
+}
+
+/* ---- Picking up and putting back ---- */
+function pickDoc(id) {
+  const o = DOCO[id];
+  if (!o || busy() || STATE.mode !== 'desk') return;
+  setMode('hold');
+  STATE.heldId = id;
+  STATE.examined[id] = true;
+  o.held = { rx: 0, ry: 0 };
+  o.group.visible = true;
+  const g = o.group;
+  const p0 = g.position.clone(), q0 = g.quaternion.clone();
+  const q1 = new THREE.Quaternion();
+  o.moving = true;
+  fadeReadFill(0.9);
+  runT(0.95, 0, k => {
+    g.position.lerpVectors(p0, HOLD_POS, k);
+    g.quaternion.slerpQuaternions(q0, q1, k);
+  }, () => { o.moving = false; });
+  moveCamera(HOLD_CAM.p, HOLD_CAM.l, 1.5);
+  SFX.rustle(0.6);
+  announceQuestions();
+}
+
+function putBack() {
+  const id = STATE.heldId;
+  const o = DOCO[id];
+  if (!o || busy()) return;
+  setMode('desk');
+  const g = o.group;
+  const p0 = g.position.clone(), q0 = g.quaternion.clone();
+  const p1 = new THREE.Vector3(o.deskX, o.deskY, o.deskZ);
+  const q1 = flatQuat(o.deskYaw);
+  o.held = null;
+  STATE.heldId = null;
+  o.moving = true;
+  fadeReadFill(0);
+  runT(1.05, 0, k => {
+    g.position.lerpVectors(p0, p1, k);
+    g.quaternion.slerpQuaternions(q0, q1, k);
+  }, () => { o.moving = false; });
+  moveCamera(CAM_HOME.p, CAM_HOME.l, 2.2);
+  SFX.rustle(0.5);
+}
+
+function enterRead() {
+  if (STATE.mode !== 'hold' || busy()) return;
+  setMode('read');
+  moveCamera(READ_CAM.p, READ_CAM.l, 1.6);
+  const id = STATE.heldId;
+  if (DOCS[id] && DOCS[id].scene) {
+    wait(3.6, () => {
+      if (STATE.mode === 'read' && STATE.heldId === id) enterRecon();
+    });
+  }
+}
+
+function exitRead() {
+  if (STATE.mode !== 'read' || busy()) return;
+  setMode('hold');
+  moveCamera(HOLD_CAM.p, HOLD_CAM.l, 1.4);
+}
+
+/* ---- Reconstruction: the room falls away and the scene assembles ---- */
+function enterRecon() {
+  const id = STATE.heldId;
+  const o = DOCO[id];
+  if (!o || !o.scene || STATE.mode === 'recon') return;
+  setMode('recon');
+  o.group.visible = false;
+  DESK.visible = false;
+  ROOM.visible = false;
+  SHEETS.visible = false;
+  lampSpot.visible = false;
+  readFill.intensity = 0;
+  bokeh.enabled = true;
+  scene.fog.density = 0.165;
+  beginDiorama(o.scene, o.sceneVariant);
+  const c = { cx: 0, cy: 0.62, cz: 0, r: 5.0, y: 2.55 };
+  camOrbit.cx = c.cx; camOrbit.cz = c.cz; camOrbit.cy = c.cy; camOrbit.r = c.r; camOrbit.y = c.y;
+  camOrbit.a = 0; camOrbit.speed = 0.045;
+  camOrbit.on = false;
+  const start = new THREE.Vector3(0, c.y, c.r);
+  moveCamera(start, new THREE.Vector3(0, c.cy, 0), 3.2, () => { camOrbit.on = true; });
+}
+
+function exitRecon() {
+  if (STATE.mode !== 'recon') return;
+  camOrbit.on = false;
+  droneStop();
+  bokeh.enabled = false;
+  scene.fog.density = 0.12;
+  DIO.container.visible = false;
+  clearDiorama();
+  DESK.visible = true;
+  ROOM.visible = true;
+  SHEETS.visible = true;
+  lampSpot.visible = true;
+  const o = DOCO[STATE.heldId];
+  if (o) o.group.visible = true;
+  setMode('hold');
+  fadeReadFill(0.9);
+  moveCamera(HOLD_CAM.p, HOLD_CAM.l, 2.0);
+}
+
+function fadeReadFill(to) {
+  const from = readFill.intensity;
+  runT(0.9, 0, k => { readFill.intensity = lerp(from, to, k); });
+}
+
+/* ---- Drawer and board ---- */
+function toggleDrawer() {
+  if (STATE.mode !== 'desk' || busy()) return;
+  const dr = D.drawer;
+  dr.open = !dr.open;
+  SFX.drawer();
+  const z0 = dr.tray.position.z, z1 = dr.open ? 0.55 : 0;
+  runT(0.9, 0, k => { dr.tray.position.z = lerp(z0, z1, k); });
+  if (dr.open) flashNote('Spare ribbons in the drawer. Click the spool to fit a new one.', 3800);
+}
+
+function enterBoard() {
+  if (STATE.mode !== 'desk' || busy()) return;
+  setMode('board');
+  moveCamera(BOARD_CAM.p, BOARD_CAM.l, 2.2, () => {
+    if (STATE.mode === 'board') openBoard();
+  });
+}
+
+function leaveBoard() {
+  if (STATE.mode !== 'board') return;
+  closeBoard();
+  setMode('desk');
+  moveCamera(CAM_HOME.p, CAM_HOME.l, 2.2);
+}
+
+// Pinning from the held paper puts it on the board.
+function pinCurrent() {
+  if (STATE.mode !== 'hold' || !STATE.heldId) return;
+  pinHeld(STATE.heldId);
+}
+
+/* ---- Ending ---- */
+function typeInto(el, text, speed, after) {
+  el.textContent = '';
+  const cur = document.createElement('span');
+  cur.className = 'cur';
+  el.appendChild(cur);
+  let i = 0;
+  const step = () => {
+    if (i >= text.length) { cur.remove(); if (after) after(); return; }
+    const ch = text[i++];
+    el.insertBefore(document.createTextNode(ch), cur);
+    if (ch !== ' ' && ch !== '\n' && i % 3 === 0) SFX.key();
+    setTimeout(step, ch === '\n' ? speed * 7 : speed * (0.7 + Math.random() * 0.6));
+  };
+  step();
+}
+
+function startEnding(kind) {
+  if (STATE.ended) return;
+  STATE.ended = true;
+  setMode('ending');
+  if (kind === 'open' || kind === 'harm') CLOCK.stopped = true;
+  runT(5, 0, k => { lampSpot.intensity = lerp(15, kind === 'pell' ? 9 : 4, k); });
+  droneStop();
+  moveCamera(INTRO_CAM.p, INTRO_CAM.l, 5.0);
+  const ov = document.getElementById('ending');
+  ov.classList.remove('hidden');
+  void ov.offsetWidth;
+  ov.classList.remove('off');
+  const E = ENDING_TEXT[kind];
+  const sum = (STATE.summaryText || '').slice(0, 700);
+  const body = [E.head, '', ...E.body, '', 'YOUR SUMMARY', sum || '(nothing typed)'].join('\n');
+  const el = document.getElementById('endText');
+  wait(1.2, () => typeInto(el, body, 26, () => {
+    if (E.card) {
+      const h = document.createElement('div');
+      h.className = 'hand';
+      el.appendChild(h);
+      typeInto(h, E.card, 42, showAgain);
+    } else showAgain();
+  }));
+}
+function showAgain() { document.getElementById('againBtn').classList.remove('hidden'); }
+
+/* ---- Intro ---- */
+const INTRO_TEXT = 'HOLLIN FORD CONSTABULARY · ARCHIVE\n\nCASE 68/11/0417\nMARROW, Anne Lisle · last seen 1968\n\nThe file came up from the basement this evening.\nNobody has signed for it.';
+function beginCase() {
+  audioInit();
+  const ov = document.getElementById('intro');
+  ov.classList.add('off');
+  setTimeout(() => ov.classList.add('hidden'), 1600);
+  moveCamera(CAM_HOME.p, CAM_HOME.l, 6.5);
+  setMode('desk');
+  setTimeout(() => flashNote('The lamp is on. The room is cold.', 4200), 1400);
+}
+
+/* ---- Pointer ---- */
+const raycaster = new THREE.Raycaster();
+const ndc = new THREE.Vector2();
+const pointer = { x: 0, y: 0, down: false, sx: 0, sy: 0, moved: 0, dragging: false };
+const label = document.getElementById('cursorLabel');
+
+function setNdc(e) {
+  ndc.x = (e.clientX / window.innerWidth) * 2 - 1;
+  ndc.y = -(e.clientY / window.innerHeight) * 2 + 1;
+}
+
+function sheetsToPick() {
+  const out = [];
+  for (const o of Object.values(DOCO)) if (o.group && o.group.visible && o.group.parent === SHEETS) out.push(...o.meshes);
+  return out;
+}
+
+// The first thing the ray meets decides the click. A closed pedestal blocks the drawer's spool.
+function hitAt(targets) {
+  raycaster.setFromCamera(ndc, camera);
+  const hits = raycaster.intersectObjects(targets, false);
+  if (!hits.length) return null;
+  const first = hits[0].object;
+  if (first.userData.blocker) return null;
+  return first;
+}
+
+function pickTargetsForDesk() {
+  const t = [...sheetsToPick(), ...D.pick];
+  if (D.pedestal) t.push(D.pedestal);
+  return t;
+}
+
+const HOVER_NAMES = { typewriter: 'typewriter', drawer: 'drawer', spool: 'ribbon spool', board: 'corkboard', clock: 'clock' };
+
+function onHover() {
+  if (busy() && STATE.mode !== 'hold') { label.classList.remove('on'); return; }
+  let name = null, cursor = 'default';
+  if (STATE.mode === 'desk') {
+    const h = hitAt(pickTargetsForDesk());
+    hoverSheet = h && h.userData.sheet ? h.userData.sheet : null;
+    if (h) {
+      if (h.userData.sheet) { name = h.userData.sheet.title; cursor = 'pointer'; }
+      else if (h.userData.pick) {
+        if (h.userData.pick === 'spool' && !D.drawer.open) { name = null; }
+        else { name = HOVER_NAMES[h.userData.pick]; cursor = 'pointer'; }
+      }
+    }
+  } else if (STATE.mode === 'hold' || STATE.mode === 'read') {
+    const o = DOCO[STATE.heldId];
+    if (o && hitAt(o.meshes)) { name = STATE.mode === 'hold' ? 'read it' : null; cursor = 'pointer'; }
+    if (!name) name = STATE.mode === 'hold' ? 'drag to turn' : null;
+  }
+  document.body.style.cursor = cursor;
+  if (name) {
+    label.textContent = name;
+    label.style.transform = `translate(${pointer.x + 16}px, ${pointer.y + 16}px)`;
+    label.classList.add('on');
+  } else label.classList.remove('on');
+}
+
+function onClick() {
+  switch (STATE.mode) {
+    case 'desk': {
+      const h = hitAt(pickTargetsForDesk());
+      if (!h) return;
+      if (h.userData.sheet) return pickDoc(h.userData.sheet.id);
+      const p = h.userData.pick;
+      if (p === 'typewriter') return enterType();
+      if (p === 'board') return enterBoard();
+      if (p === 'drawer') return toggleDrawer();
+      if (p === 'spool') return D.drawer.open ? replaceRibbon() : null;
+      if (p === 'clock') return flashNote(CLOCK.stopped ? 'The clock has stopped.' : 'The clock keeps the room’s time.', 2600);
+      return;
+    }
+    case 'hold': {
+      const o = DOCO[STATE.heldId];
+      if (o && hitAt(o.meshes)) enterRead();
+      return;
+    }
+    case 'read': {
+      exitRead();
+      return;
+    }
+    default:
+  }
+}
+
+stage.addEventListener('pointerdown', e => {
+  if (STATE.mode === 'intro' || STATE.mode === 'ending' || STATE.mode === 'board') return;
+  pointer.down = true; pointer.dragging = false;
+  pointer.sx = e.clientX; pointer.sy = e.clientY; pointer.moved = 0;
+});
+window.addEventListener('pointermove', e => {
+  pointer.x = e.clientX; pointer.y = e.clientY;
+  setNdc(e);
+  if (pointer.down && (STATE.mode === 'hold' || STATE.mode === 'read')) {
+    const dx = e.clientX - pointer.sx, dy = e.clientY - pointer.sy;
+    pointer.moved += Math.abs(e.movementX) + Math.abs(e.movementY);
+    if (pointer.moved > 4) pointer.dragging = true;
+    const o = DOCO[STATE.heldId];
+    if (o && o.held && pointer.dragging) {
+      o.held.ry += e.movementX * 0.009;
+      o.held.rx = clamp(o.held.rx + e.movementY * 0.009, -1.2, 1.2);
+      o.group.rotation.set(o.held.rx, o.held.ry, 0);
+    }
+  }
+  if (!pointer.down) onHover();
+});
+window.addEventListener('pointerup', () => {
+  if (!pointer.down) return;
+  pointer.down = false;
+  if (!pointer.dragging && STATE.mode !== 'type') onClick();
+  pointer.dragging = false;
+});
+
+/* ---- Keyboard ---- */
+function onTypeKey(e) {
+  if (e.key === 'Escape') {
+    e.preventDefault();
+    if (['feed', 'answer', 'summary'].includes(SHEET.mode)) ejectSheet(null);
+    return;
+  }
+  if (!['feed', 'answer', 'summary'].includes(SHEET.mode)) return;
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    if ((e.ctrlKey || e.metaKey) && SHEET.mode === 'summary') return submitSummary();
+    if (e.ctrlKey || e.metaKey) return;
+    return submitLine();
+  }
+  if (e.key === 'Backspace') { e.preventDefault(); return backspacePressed(); }
+  if (e.ctrlKey || e.metaKey || e.altKey) return;
+  if (e.key.length === 1) { e.preventDefault(); typeChar(e.key); }
+}
+
+window.addEventListener('keydown', e => {
+  const k = e.key.toLowerCase();
+  if (STATE.mode === 'type') return onTypeKey(e);
+  if (STATE.mode === 'board') { if (e.key === 'Escape') leaveBoard(); return; }
+  if (STATE.mode === 'intro' || STATE.mode === 'ending' || busy()) {
+    if (e.key === 'Escape' && STATE.mode === 'recon') exitRecon();
+    return;
+  }
+  switch (STATE.mode) {
+    case 'desk':
+      if (k === 't') enterType();
+      else if (k === 'c') enterBoard();
+      else if (k === 'd') toggleDrawer();
+      break;
+    case 'hold':
+      if (e.key === 'Escape') putBack();
+      else if (k === 'e' || e.key === 'Enter') enterRead();
+      else if (k === 'p') pinCurrent();
+      break;
+    case 'read':
+      if (e.key === 'Escape') exitRead();
+      else if (k === 'r') enterRecon();
+      break;
+    case 'recon':
+      if (e.key === 'Escape') exitRecon();
+      break;
+    default:
+  }
+});
+
+document.getElementById('beginBtn').addEventListener('click', beginCase);
+document.getElementById('againBtn').addEventListener('click', () => location.reload());
+
+/* ---- Clock: ticks once a second while the room is quiet ---- */
+let lastSec = -1, tickAlt = false;
+function updateClock(now) {
+  const d = new Date(now);
+  const s = d.getSeconds() + d.getMilliseconds() / 1000;
+  if (!CLOCK.stopped) {
+    const h = (d.getHours() % 12) + d.getMinutes() / 60;
+    const m = d.getMinutes() + s / 60;
+    CLOCK.hh.rotation.z = -(h / 12) * TAU;
+    CLOCK.mh.rotation.z = -(m / 60) * TAU;
+    CLOCK.sh.rotation.z = -(s / 60) * TAU;
+  }
+  const sec = Math.floor(s);
+  if (sec !== lastSec) {
+    lastSec = sec;
+    if (!CLOCK.stopped && AUD.on) { tickAlt ? SFX.tock() : SFX.tick(); tickAlt = !tickAlt; }
+  }
+}
+
+/* ---- Render loop ---- */
+let simT = 0;
+let lastFrame = performance.now();
+function frame(now) {
+  const dt = Math.min(0.05, (now - lastFrame) / 1000);
+  lastFrame = now;
+  simT += dt;
+
+  updateTweens(dt);
+
+  if (camOrbit.on) {
+    camOrbit.a += dt * camOrbit.speed;
+    camBase.set(camOrbit.cx + Math.sin(camOrbit.a) * camOrbit.r, camOrbit.y, camOrbit.cz + Math.cos(camOrbit.a) * camOrbit.r);
+  }
+  // A breath of drift: the camera is never perfectly still
+  const dx = Math.sin(simT * 0.21) * drift.amp;
+  const dy = Math.sin(simT * 0.13) * drift.amp * 0.5;
+  camera.position.set(camBase.x + dx, camBase.y + dy, camBase.z);
+  camera.lookAt(camLook);
+
+  // A held paper hangs slightly, as paper does
+  const o = DOCO[STATE.heldId];
+  if (o && o.held && !pointer.dragging && STATE.mode !== 'recon') {
+    o.group.rotation.set(o.held.rx + Math.sin(simT * 0.9) * 0.006, o.held.ry + Math.sin(simT * 0.7) * 0.01, Math.sin(simT * 0.5) * 0.008);
+  }
+
+  // Hover lift on desk papers
+  if (STATE.mode === 'desk') {
+    for (const obj of Object.values(DOCO)) {
+      if (!obj.group || obj.group.parent !== SHEETS || obj.deskY === undefined || obj.held || obj.moving) continue;
+      obj.lift = obj.lift || 0;
+      obj.lift += ((obj === hoverSheet ? 0.012 : 0) - obj.lift) * Math.min(1, dt * 8);
+      obj.group.position.y = obj.deskY + obj.lift;
+    }
+  }
+
+  updateFog(simT);
+  grainPass.uniforms.uTime.value = simT;
+  if (bokeh.enabled) bokeh.uniforms['focus'].value = camera.position.distanceTo(camLook);
+  updateClock(Date.now());
+  composer.render();
+  requestAnimationFrame(frame);
+}
+let hoverSheet = null;
+
+/* ---- Boot: fonts first, so the paper is drawn with the right type ---- */
+async function loadFonts() {
+  try {
+    await Promise.all([
+      document.fonts.load(`22px 'Courier Prime'`),
+      document.fonts.load(`bold 22px 'Courier Prime'`),
+      document.fonts.load(`italic 24px 'Courier Prime'`),
+      document.fonts.load(`26px 'Caveat'`),
+      document.fonts.load(`26px 'Special Elite'`),
+    ]);
+  } catch (e) { /* fall back to the system monospace */ }
+}
+
+async function boot() {
+  await loadFonts();
+  for (const id of DOC_ORDER) {
+    if (!DOCS[id].start) continue;
+    const obj = createDocSheet(id);
+    placeOnDesk(obj, false);
+    STATE.arrived[id] = true;
+  }
+  renderTypeSheet();
+  TYPE.tex.needsUpdate = true;
+  lastOpen = FEED_OPEN_ORDER.filter(id => factIsOpen(id)).join(',');
+  // Intro text is typed, not shown
+  const introEl = document.getElementById('introText');
+  typeInto(introEl, INTRO_TEXT, 42, () => document.getElementById('beginBtn').classList.remove('hidden'));
+  setMode('intro');
+  camBase.copy(INTRO_CAM.p);
+  camLook.copy(INTRO_CAM.l);
+  requestAnimationFrame(frame);
+}
+boot();
+
+// Test hook: lets the headless harness read the scene. Harmless in play.
+window.__game = { advance: sec => { for (let t = 0; t < sec; t += 0.02) updateTweens(0.02); }, scene, camera, STATE, DOCO, DESK, SHEETS, TYPEWRITER, lampSpot, camBase, camLook, moveCamera, enterType, pickDoc, enterRead, enterRecon, enterBoard, D, fogSprites, renderer, composer, startEnding, placeDynamicSheet, typeChar, submitLine, getSheet: () => ({ rows: SHEET.rows, mode: SHEET.mode }) };
+</script>
+</body>
+</html>
